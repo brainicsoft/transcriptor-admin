@@ -1,10 +1,10 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { type NextRequest, NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
 import { getUserFromRequest } from "@/lib/auth";
 import { createModuleSchema } from "@/lib/validations/module";
 import { uploadModuleIcon, uploadModuleZip } from "@/lib/utils/file-upload";
 import { moduleUsageTrackerInjection } from "@/lib/utils/usage-limit";
-import { text } from "stream/consumers";
 
 // GET /api/admin/modules - Get all modules (admin only)
 export async function GET(req: NextRequest) {
