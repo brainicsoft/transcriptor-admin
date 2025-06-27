@@ -37,6 +37,7 @@
     "date-fns": "^4.1.0",
     "firebase-admin": "^13.4.0",
     "fs": "0.0.1-security",
+    "highcharts": "^12.3.0",
     "jsonwebtoken": "^9.0.2",
     "jwks-rsa": "^3.2.0",
     "lucide-react": "^0.507.0",
