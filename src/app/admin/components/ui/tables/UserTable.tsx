@@ -173,7 +173,7 @@ export default function UsersTable() {
   }
 
   return (
-    <div className="w-full bg-gray-50 min-h-screen p-6">
+    <div className="w-full min-h-screen p-6">
       <div className="max-w-7xl mx-auto">
         <div className="bg-white rounded-lg shadow-sm border">
           {/* Header */}
