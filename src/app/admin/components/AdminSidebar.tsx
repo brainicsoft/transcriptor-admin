@@ -15,7 +15,7 @@ export default function AdminSidebar({
       {/* Desktop Sidebar */}
       <div className="hidden md:flex md:flex-shrink-0">
         <div className="flex flex-col w-64 h-full">
-          <div className="flex flex-col flex-grow pt-5 pb-4 overflow-y-auto bg-indigo-700">
+          <div className="flex flex-col flex-grow pt-5 pb-4 overflow-y-auto bg-primary">
             <div className="flex items-center justify-between flex-shrink-0 px-4">
               <h1 className="text-xl font-bold text-white">Admin Panel</h1>
             </div>
@@ -28,9 +28,9 @@ export default function AdminSidebar({
             </div>
             
             {/* User Info & Logout at Bottom */}
-            <div className="px-4 py-4 border-t border-indigo-800">
+            <div className="px-4 py-4 border-t border-secondary">
               <div className="flex items-center">
-                <div className="bg-indigo-600 p-2 rounded-full">
+                <div className="bg-secondary p-2 rounded-full">
                   <FiUser className="h-5 w-5 text-white" />
                 </div>
                 <div className="ml-3">
@@ -53,7 +53,7 @@ export default function AdminSidebar({
       
       {/* Mobile Sidebar */}
       <div className={`fixed inset-y-0 left-0 z-50 w-64 transform ${isOpen ? 'translate-x-0' : '-translate-x-full'} md:hidden transition duration-300 ease-in-out`}>
-        <div className="flex flex-col h-full bg-indigo-700">
+        <div className="flex flex-col h-full bg-primary">
           {/* Mobile Header with Close Button */}
           <div className="flex items-center justify-between px-4 pt-5 pb-2">
             <h1 className="text-xl font-bold text-white">Admin Panel</h1>
@@ -88,9 +88,9 @@ export default function AdminSidebar({
           </div>
           
           {/* Mobile User Info */}
-          <div className="px-4 py-4 border-t border-indigo-800">
+          <div className="px-4 py-4 border-t border-secondary">
             <div className="flex items-center">
-              <div className="bg-indigo-600 p-2 rounded-full">
+              <div className="bg-secondary p-2 rounded-full">
                 <FiUser className="h-5 w-5 text-white" />
               </div>
               <div className="ml-3">

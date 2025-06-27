@@ -39,7 +39,7 @@ export default function AdminNavbar({
                 onClick={() => setUserDropdownOpen(!userDropdownOpen)}
                 className="flex items-center max-w-xs text-sm rounded-full focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
               >
-                <div className="bg-indigo-600 p-2 rounded-full">
+                <div className="bg-secondary p-2 rounded-full">
                   <FiUser className="h-5 w-5 text-white" />
                 </div>
                 <span className="ml-2 text-sm font-medium text-gray-700">Admin User</span>

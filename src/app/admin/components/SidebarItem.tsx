@@ -3,22 +3,19 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import clsx from 'clsx';
 import { IconType } from 'react-icons';
-import { FiGrid, FiSettings, FiUsers } from 'react-icons/fi';
+import { FiGrid, FiLayers,  FiUsers } from 'react-icons/fi';
 
-// Define your icon names as a type
-type IconName = 'dashboard' | 'users' | 'settings'; // Add all your icon names here
+type IconName = 'dashboard' | 'users' | 'settings';
 
-// Create an icon map
 const iconComponents: Record<IconName, IconType> = {
   dashboard: FiGrid,
   users: FiUsers,
-  settings: FiSettings,
-  // Add more icons as needed
+  settings: FiLayers,
 };
 
 interface SidebarItemProps {
   href: string;
-  icon: IconName;  // Now accepts only the icon name
+  icon: IconName;
   title: string;
   onClick?: () => void;
 }
@@ -39,9 +36,9 @@ export default function SidebarItem({
       onClick={onClick}
       className={clsx(
         isActive
-          ? 'bg-indigo-800 text-white'
-          : 'text-indigo-100 hover:bg-indigo-600',
-        'group flex items-center px-2 py-2 text-sm font-medium rounded-md'
+          ? 'border-l-2 border-white bg-secondary text-white shadow-sm '
+          : 'text-indigo-100 hover:bg-secondary',
+        'group flex items-center px-4 py-4 text-md font-medium rounded-none' // Changed px-2 to px-4 and removed rounded-md
       )}
     >
       {IconComponent && <IconComponent className="mr-3 h-5 w-5" />}
