@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 "use client"
 
 import { useState, useEffect } from "react"
@@ -10,6 +11,7 @@ import { Checkbox } from "@/components/ui/checkbox"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
 import { getData } from "@/app/axios/fetching"
+import DynamicModal from "../../form/DynamicModal"
 
 type User = {
   id: string
@@ -37,7 +39,7 @@ export default function UsersTable() {
   const [users, setUsers] = useState<User[]>([])
   const [totalUsers, setTotalUsers] = useState(0)
   const [isLoading, setIsLoading] = useState(true)
-  
+  const [isModalOpen, setIsModalOpen] = useState(false);
   const itemsPerPage = 10
 
   // Fetch data from API
@@ -122,63 +124,106 @@ export default function UsersTable() {
     return date.toLocaleDateString() + " " + date.toLocaleTimeString()
   }
 
+  //  For Create new User
+  const userFields: any = [
+    {
+      name: 'fullName',
+      label: 'Full Name',
+      type: 'text',
+      required: true
+    },
+    {
+      name: 'email',
+      label: 'Email',
+      type: 'email',
+      required: true
+    },
+    {
+      name: 'password',
+      label: 'Password',
+      type: 'password',
+      required: true
+    },
+    {
+      name: 'profession',
+      label: 'Profession',
+      type: 'text'
+    },
+    {
+      name: 'country',
+      label: 'Country',
+      type: 'text'
+    },
+    {
+      name: 'city',
+      label: 'City',
+      type: 'text'
+    }
+
+  ];
+
+  // Add this handler for successful user creation
+  const handleUserCreated = (newUser: User) => {
+    setUsers(prevUsers => [newUser, ...prevUsers]);
+    setTotalUsers(prev => prev + 1);
+  };
   return (
     <div className="w-full min-h-screen p-6">
       <div className="max-w-7xl mx-auto">
         <div className="flex items-center justify-between p-4 border-b">
-            <div className="flex items-center gap-3">
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <Button variant="outline" size="sm">
-                    <Filter className="w-4 h-4 mr-2" />
-                    Filters
-                  </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent className="max-h-96 overflow-y-auto">
-                  <DropdownMenuItem onClick={() => setProfessionFilter("")}>All Professions</DropdownMenuItem>
-                  {Array.from(new Set(users.map(u => u.profession).filter(Boolean))).map(prof => (
-                    <DropdownMenuItem key={prof} onClick={() => setProfessionFilter(prof!)}>
-                      {prof}
-                    </DropdownMenuItem>
-                  ))}
-                  
-                  <DropdownMenuItem onClick={() => setCountryFilter("")}>All Countries</DropdownMenuItem>
-                  {Array.from(new Set(users.map(u => u.country).filter(Boolean))).map(country => (
-                    <DropdownMenuItem key={country} onClick={() => setCountryFilter(country!)}>
-                      {country}
-                    </DropdownMenuItem>
-                  ))}
-                </DropdownMenuContent>
-              </DropdownMenu>
+          <div className="flex items-center gap-3">
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="outline" size="sm">
+                  <Filter className="w-4 h-4 mr-2" />
+                  Filters
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent className="max-h-96 overflow-y-auto">
+                <DropdownMenuItem onClick={() => setProfessionFilter("")}>All Professions</DropdownMenuItem>
+                {Array.from(new Set(users.map(u => u.profession).filter(Boolean))).map(prof => (
+                  <DropdownMenuItem key={prof} onClick={() => setProfessionFilter(prof!)}>
+                    {prof}
+                  </DropdownMenuItem>
+                ))}
 
-              <Button size="sm" className="bg-slate-800 hover:bg-slate-700">
-                <Plus className="w-4 h-4 mr-2" />
-                Add User
-              </Button>
+                <DropdownMenuItem onClick={() => setCountryFilter("")}>All Countries</DropdownMenuItem>
+                {Array.from(new Set(users.map(u => u.country).filter(Boolean))).map(country => (
+                  <DropdownMenuItem key={country} onClick={() => setCountryFilter(country!)}>
+                    {country}
+                  </DropdownMenuItem>
+                ))}
+              </DropdownMenuContent>
+            </DropdownMenu>
 
-              {selectedRows.length > 0 && (
-                <span className="text-sm text-gray-600">
-                  {selectedRows.length} row{selectedRows.length !== 1 ? "s" : ""} selected
-                </span>
-              )}
-            </div>
+            <Button onClick={() => setIsModalOpen(state => !state)} size="sm" className="bg-slate-800 hover:bg-slate-700">
+              <Plus className="w-4 h-4 mr-2" />
+              Add User
+            </Button>
 
-            <div className="relative">
-              <Search className="w-4  absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
-              <Input
-                placeholder="Search by name, email, or address"
-                value={searchTerm}
-                onChange={(e) => {
-                  setSearchTerm(e.target.value)
-                  setCurrentPage(1)
-                }}
-                className="pl-10 py-2 w-64 bg-white border-indigo-500 outline-none focus:outline-none"
-              />
-            </div>
+            {selectedRows.length > 0 && (
+              <span className="text-sm text-gray-600">
+                {selectedRows.length} row{selectedRows.length !== 1 ? "s" : ""} selected
+              </span>
+            )}
           </div>
+
+          <div className="relative">
+            <Search className="w-4  absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
+            <Input
+              placeholder="Search by name, email, or address"
+              value={searchTerm}
+              onChange={(e) => {
+                setSearchTerm(e.target.value)
+                setCurrentPage(1)
+              }}
+              className="pl-10 py-2 w-64 bg-white border-indigo-500 outline-none focus:outline-none"
+            />
+          </div>
+        </div>
         <div className="bg-white rounded-lg shadow-sm border">
           {/* Header */}
-          
+
 
           {/* Table */}
           <Table>
@@ -294,7 +339,7 @@ export default function UsersTable() {
             <div className="text-sm text-gray-600">
               Showing {(currentPage - 1) * itemsPerPage + 1} to {Math.min(currentPage * itemsPerPage, totalUsers)} of {totalUsers} users
             </div>
-            
+
             <div className="flex items-center gap-2">
               <Button
                 variant="outline"
@@ -323,6 +368,32 @@ export default function UsersTable() {
           </div>
         </div>
       </div>
+      <DynamicModal
+        isOpen={isModalOpen}
+        onClose={() => setIsModalOpen(false)}
+        title="Create New User"
+        initialData={{
+          fullName: '',
+          email: '',
+          password: '',
+          profession: '',
+          country: '',
+          city: '',
+          isAdmin: 'true'
+        }}
+        fields={userFields}
+        endpoint="/api/auth/signup" // Adjust this to your actual API endpoint
+        method="POST"
+        buttonText="Create User"
+        onSuccess={handleUserCreated}
+        validate={(data) => {
+          const errors: Record<string, string> = {};
+          if (!data.fullName) errors.fullName = 'Full name is required';
+          if (!data.email) errors.email = 'Email is required';
+          if (!data.password) errors.password = 'Password is required';
+          return Object.keys(errors).length > 0 ? errors : null;
+        }}
+      />
     </div>
   )
 }
