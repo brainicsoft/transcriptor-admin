@@ -1,14 +1,30 @@
 "use client"
 import { FiMenu, FiBell, FiUser, FiLogOut } from 'react-icons/fi';
 import { useState } from 'react';
+import { useRouter } from 'next/navigation';
 
 export default function AdminNavbar({ 
   setSidebarOpen 
 }: { 
   setSidebarOpen: (open: boolean) => void 
 }) {
+  const router = useRouter()
   const [userDropdownOpen, setUserDropdownOpen] = useState(false);
-
+const handleLogout = () => {
+    // Clear localStorage tokens
+    localStorage.removeItem('token');
+    localStorage.removeItem('token');
+    
+    // Clear cookies by setting expired date
+    document.cookie = 'token=; Path=/; Expires=Thu, 01 Jan 1970 00:00:01 GMT;';
+    document.cookie = 'refreshToken=; Path=/; Expires=Thu, 01 Jan 1970 00:00:01 GMT;';
+    
+    // Close dropdown
+    setUserDropdownOpen(false);
+    
+    // Redirect to login page
+    router.push('/login');
+  };
   return (
     <div className="sticky top-0 z-10 flex-shrink-0 flex h-16 bg-white shadow">
       <button
@@ -50,7 +66,7 @@ export default function AdminNavbar({
             {userDropdownOpen && (
               <div className="origin-top-right absolute right-0 mt-2 w-48 rounded-md shadow-lg py-1 bg-white ring-1 ring-black ring-opacity-5 focus:outline-none">
                 <button
-                  onClick={() => console.log('Logout')}
+                  onClick={handleLogout}
                   className="flex items-center px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 w-full text-left"
                 >
                   <FiLogOut className="mr-2" /> Sign out

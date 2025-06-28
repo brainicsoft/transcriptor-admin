@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 "use client"
 import { useState } from 'react'
 import Link from 'next/link'
@@ -6,17 +7,45 @@ import { FiLock, FiMail, FiEye, FiEyeOff, FiUser } from 'react-icons/fi'
 export default function LoginPage() {
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
+    const [error, setError] = useState<string | null>(null);
   const [showPassword, setShowPassword] = useState(false)
   const [rememberMe, setRememberMe] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit =  async(e: React.FormEvent) => {
     e.preventDefault()
     setIsLoading(true)
-    // Add your login logic here
-    console.log({ email, password, rememberMe })
-    // Simulate API call
-    setTimeout(() => setIsLoading(false), 1500)
+    try {
+      const res = await fetch('/api/auth/login', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+         credentials: 'include',
+        body: JSON.stringify({
+          email,
+          password,
+        }),
+      });
+
+      const data = await res.json();
+
+      if (res.ok) {
+        console.log(data)
+        // Save token to cookie/localStorage (based on your auth strategy)
+        localStorage.setItem('token', data.accessToken);
+
+        // Redirect or do something on success
+        
+ window.location.href = `${window.location.origin}/admin`;
+      } else {
+        setError(data?.error || 'Login failed');
+      }
+    } catch (err:any) {
+      setError(err.message || 'Something went wrong. Please try again.');
+    } finally {
+      setIsLoading(false);
+    }
   }
 
   return (
@@ -118,7 +147,7 @@ export default function LoginPage() {
               </Link>
             </div>
           </div>
-
+ {error && <div className="text-red-500">{error}</div>}
           {/* Submit Button */}
           <div>
             <button

@@ -13,6 +13,7 @@ export const signupSchema = z.object({
   country: z.string().optional(),
   city: z.string().optional(),
   deviceId: z.string().optional(),
+  type:z.string().optional()
 })
 
 export const syncRevenueCatSchema = z.object({

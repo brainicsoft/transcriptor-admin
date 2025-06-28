@@ -39,6 +39,7 @@
     "firebase-admin": "^13.4.0",
     "fs": "0.0.1-security",
     "highcharts": "^12.3.0",
+    "jose": "^6.0.11",
     "jsonwebtoken": "^9.0.2",
     "jwks-rsa": "^3.2.0",
     "lucide-react": "^0.507.0",
