@@ -1,139 +1,78 @@
 "use client"
 
-import { useState, useMemo } from "react"
+import { useState, useEffect } from "react"
 import Image from "next/image"
 import avatar from '@/assets/avatar.jpg'
 import { Search, Filter, Plus, ChevronDown, ChevronUp, Trash2, Edit, ChevronLeft, ChevronRight } from "lucide-react"
-
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Checkbox } from "@/components/ui/checkbox"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
+import { getData } from "@/app/axios/fetching"
 
-// Mock data
-const mockUsers = [
-  {
-    id: 1,
-    name: "John Doe",
-    email: "john.doe@gmail.com",
-    address: "4600 E Silver Springs Blvd",
-    subscription: "No Plan",
-    lastRunTime: "Few Minutes Ago",
-    avatar: "/placeholder.svg?height=40&width=40",
-  },
-  {
-    id: 2,
-    name: "John Doe",
-    email: "john.doe@gmail.com",
-    address: "4600 E Silver Springs Blvd",
-    subscription: "Active",
-    lastRunTime: "Few Minutes Ago",
-    avatar: "/placeholder.svg?height=40&width=40",
-  },
-  {
-    id: 3,
-    name: "John Doe",
-    email: "john.doe@gmail.com",
-    address: "4600 E Silver Springs Blvd",
-    subscription: "Trial Plan",
-    lastRunTime: "Few Minutes Ago",
-    avatar: "/placeholder.svg?height=40&width=40",
-  },
-  {
-    id: 4,
-    name: "Jane Smith",
-    email: "jane.smith@gmail.com",
-    address: "1234 Main Street",
-    subscription: "Active",
-    lastRunTime: "1 Hour Ago",
-    avatar: "/placeholder.svg?height=40&width=40",
-  },
-  {
-    id: 5,
-    name: "Bob Johnson",
-    email: "bob.johnson@gmail.com",
-    address: "5678 Oak Avenue",
-    subscription: "No Plan",
-    lastRunTime: "2 Hours Ago",
-    avatar: "/placeholder.svg?height=40&width=40",
-  },
-  {
-    id: 6,
-    name: "Alice Brown",
-    email: "alice.brown@gmail.com",
-    address: "9012 Pine Road",
-    subscription: "Trial Plan",
-    lastRunTime: "3 Hours Ago",
-    avatar: "/placeholder.svg?height=40&width=40",
-  },
-  {
-    id: 7,
-    name: "Charlie Wilson",
-    email: "charlie.wilson@gmail.com",
-    address: "3456 Elm Street",
-    subscription: "Active",
-    lastRunTime: "4 Hours Ago",
-    avatar: "/placeholder.svg?height=40&width=40",
-  },
-  {
-    id: 8,
-    name: "Diana Davis",
-    email: "diana.davis@gmail.com",
-    address: "7890 Maple Drive",
-    subscription: "No Plan",
-    lastRunTime: "5 Hours Ago",
-    avatar: "/placeholder.svg?height=40&width=40",
-  },
-]
+type User = {
+  id: string
+  fullName: string
+  email: string
+  profession?: string
+  country?: string
+  city?: string
+  isAdmin: boolean
+  createdAt: string
+  lastLoginAt?: string
+}
 
-type SortField = "name" | "address" | "subscription" | "lastRunTime"
+type SortField = "fullName" | "email" | "profession" | "country" | "city" | "createdAt" | "lastLoginAt"
 type SortDirection = "asc" | "desc"
 
 export default function UsersTable() {
-  const [selectedRows, setSelectedRows] = useState<number[]>([1, 2, 3])
+  const [selectedRows, setSelectedRows] = useState<string[]>([])
   const [searchTerm, setSearchTerm] = useState("")
-  const [sortField, setSortField] = useState<SortField>("name")
+  const [sortField, setSortField] = useState<SortField>("fullName")
   const [sortDirection, setSortDirection] = useState<SortDirection>("asc")
   const [currentPage, setCurrentPage] = useState(1)
-  const [subscriptionFilter, setSubscriptionFilter] = useState<string>("")
+  const [professionFilter, setProfessionFilter] = useState<string>("")
+  const [countryFilter, setCountryFilter] = useState<string>("")
+  const [users, setUsers] = useState<User[]>([])
+  const [totalUsers, setTotalUsers] = useState(0)
+  const [isLoading, setIsLoading] = useState(true)
+  
+  const itemsPerPage = 10
 
-  const itemsPerPage = 5
-  const totalPages = Math.ceil(mockUsers.length / itemsPerPage)
+  // Fetch data from API
+  useEffect(() => {
+    const fetchUsers = async () => {
+      setIsLoading(true)
+      try {
+        const params = new URLSearchParams({
+          page: currentPage.toString(),
+          perPage: itemsPerPage.toString(),
+          search: searchTerm,
+          sortBy: sortField,
+          order: sortDirection,
+          ...(professionFilter && { profession: professionFilter }),
+          ...(countryFilter && { country: countryFilter })
+        })
 
-  // Filter and sort data
-  const filteredAndSortedData = useMemo(() => {
-    const filtered = mockUsers.filter((user) => {
-      const matchesSearch =
-        user.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        user.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        user.address.toLowerCase().includes(searchTerm.toLowerCase())
-
-      const matchesSubscription = !subscriptionFilter || user.subscription === subscriptionFilter
-
-      return matchesSearch && matchesSubscription
-    })
-
-    // Sort data
-    filtered.sort((a, b) => {
-      const aValue = a[sortField]
-      const bValue = b[sortField]
-
-      if (sortDirection === "asc") {
-        return aValue.localeCompare(bValue)
-      } else {
-        return bValue.localeCompare(aValue)
+        const response = await getData(`/user?${params.toString()}`)
+        setUsers(response.data)
+        setTotalUsers(response.meta.total)
+      } catch (error) {
+        console.error("Error fetching users:", error)
+      } finally {
+        setIsLoading(false)
       }
-    })
+    }
 
-    return filtered
-  }, [searchTerm, sortField, sortDirection, subscriptionFilter])
+    const debounceTimer = setTimeout(() => {
+      fetchUsers()
+    }, 300)
 
-  // Paginate data
-  const paginatedData = useMemo(() => {
-    const startIndex = (currentPage - 1) * itemsPerPage
-    return filteredAndSortedData.slice(startIndex, startIndex + itemsPerPage)
-  }, [filteredAndSortedData, currentPage])
+    return () => clearTimeout(debounceTimer)
+  }, [searchTerm, sortField, sortDirection, currentPage, professionFilter, countryFilter])
+
+  const totalPages = Math.ceil(totalUsers / itemsPerPage)
 
   const handleSort = (field: SortField) => {
     if (sortField === field) {
@@ -142,17 +81,18 @@ export default function UsersTable() {
       setSortField(field)
       setSortDirection("asc")
     }
+    setCurrentPage(1) // Reset to first page when sorting changes
   }
 
   const handleSelectAll = (checked: boolean) => {
     if (checked) {
-      setSelectedRows(paginatedData.map((user) => user.id))
+      setSelectedRows(users.map((user) => user.id))
     } else {
       setSelectedRows([])
     }
   }
 
-  const handleSelectRow = (userId: number, checked: boolean) => {
+  const handleSelectRow = (userId: string, checked: boolean) => {
     if (checked) {
       setSelectedRows([...selectedRows, userId])
     } else {
@@ -160,8 +100,8 @@ export default function UsersTable() {
     }
   }
 
-  const isAllSelected = paginatedData.length > 0 && paginatedData.every((user) => selectedRows.includes(user.id))
-  const isSomeSelected = paginatedData.some((user) => selectedRows.includes(user.id))
+  const isAllSelected = users?.length > 0 && users.every((user) => selectedRows.includes(user.id))
+  const isSomeSelected = users?.some((user) => selectedRows.includes(user.id))
 
   const SortIcon = ({ field }: { field: SortField }) => {
     if (sortField !== field) return <ChevronDown className="w-4 h-4 text-gray-400" />
@@ -172,12 +112,20 @@ export default function UsersTable() {
     )
   }
 
+  const formatAddress = (user: User) => {
+    return [user.city, user.country].filter(Boolean).join(", ") || "N/A"
+  }
+
+  const formatDate = (dateString?: string) => {
+    if (!dateString) return "Never logged in"
+    const date = new Date(dateString)
+    return date.toLocaleDateString() + " " + date.toLocaleTimeString()
+  }
+
   return (
     <div className="w-full min-h-screen p-6">
       <div className="max-w-7xl mx-auto">
-        <div className="bg-white rounded-lg shadow-sm border">
-          {/* Header */}
-          <div className="flex items-center justify-between p-4 border-b">
+        <div className="flex items-center justify-between p-4 border-b">
             <div className="flex items-center gap-3">
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
@@ -186,11 +134,20 @@ export default function UsersTable() {
                     Filters
                   </Button>
                 </DropdownMenuTrigger>
-                <DropdownMenuContent>
-                  <DropdownMenuItem onClick={() => setSubscriptionFilter("")}>All Subscriptions</DropdownMenuItem>
-                  <DropdownMenuItem onClick={() => setSubscriptionFilter("Active")}>Active</DropdownMenuItem>
-                  <DropdownMenuItem onClick={() => setSubscriptionFilter("Trial Plan")}>Trial Plan</DropdownMenuItem>
-                  <DropdownMenuItem onClick={() => setSubscriptionFilter("No Plan")}>No Plan</DropdownMenuItem>
+                <DropdownMenuContent className="max-h-96 overflow-y-auto">
+                  <DropdownMenuItem onClick={() => setProfessionFilter("")}>All Professions</DropdownMenuItem>
+                  {Array.from(new Set(users.map(u => u.profession).filter(Boolean))).map(prof => (
+                    <DropdownMenuItem key={prof} onClick={() => setProfessionFilter(prof!)}>
+                      {prof}
+                    </DropdownMenuItem>
+                  ))}
+                  
+                  <DropdownMenuItem onClick={() => setCountryFilter("")}>All Countries</DropdownMenuItem>
+                  {Array.from(new Set(users.map(u => u.country).filter(Boolean))).map(country => (
+                    <DropdownMenuItem key={country} onClick={() => setCountryFilter(country!)}>
+                      {country}
+                    </DropdownMenuItem>
+                  ))}
                 </DropdownMenuContent>
               </DropdownMenu>
 
@@ -207,15 +164,21 @@ export default function UsersTable() {
             </div>
 
             <div className="relative">
-              <Search className="w-4 h-4 absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
+              <Search className="w-4  absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
               <Input
-                placeholder="Search"
+                placeholder="Search by name, email, or address"
                 value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className="pl-10 w-64"
+                onChange={(e) => {
+                  setSearchTerm(e.target.value)
+                  setCurrentPage(1)
+                }}
+                className="pl-10 py-2 w-64 bg-white border-indigo-500 outline-none focus:outline-none"
               />
             </div>
           </div>
+        <div className="bg-white rounded-lg shadow-sm border">
+          {/* Header */}
+          
 
           {/* Table */}
           <Table>
@@ -233,117 +196,130 @@ export default function UsersTable() {
                   />
                 </TableHead>
                 <TableHead>
-                  <button className="flex items-center gap-2 hover:text-gray-900" onClick={() => handleSort("name")}>
-                    User
-                    <SortIcon field="name" />
+                  <button className="flex items-center gap-2 hover:text-gray-900" onClick={() => handleSort("fullName")}>
+                    Name
+                    <SortIcon field="fullName" />
                   </button>
                 </TableHead>
                 <TableHead>
-                  <button className="flex items-center gap-2 hover:text-gray-900" onClick={() => handleSort("address")}>
+                  <button className="flex items-center gap-2 hover:text-gray-900" onClick={() => handleSort("email")}>
+                    Email
+                    <SortIcon field="email" />
+                  </button>
+                </TableHead>
+                <TableHead>
+                  <button className="flex items-center gap-2 hover:text-gray-900" onClick={() => handleSort("profession")}>
+                    Profession
+                    <SortIcon field="profession" />
+                  </button>
+                </TableHead>
+                <TableHead>
+                  <button className="flex items-center gap-2 hover:text-gray-900" onClick={() => handleSort("city")}>
                     Address
-                    <SortIcon field="address" />
+                    <SortIcon field="city" />
                   </button>
                 </TableHead>
                 <TableHead>
-                  <button
-                    className="flex items-center gap-2 hover:text-gray-900"
-                    onClick={() => handleSort("subscription")}
-                  >
-                    Subscription
-                    <SortIcon field="subscription" />
-                  </button>
-                </TableHead>
-                <TableHead>
-                  <button
-                    className="flex items-center gap-2 hover:text-gray-900"
-                    onClick={() => handleSort("lastRunTime")}
-                  >
-                    Last Run Time
-                    <SortIcon field="lastRunTime" />
+                  <button className="flex items-center gap-2 hover:text-gray-900" onClick={() => handleSort("lastLoginAt")}>
+                    Last Login
+                    <SortIcon field="lastLoginAt" />
                   </button>
                 </TableHead>
                 <TableHead className="w-20"></TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
-              {paginatedData.map((user) => (
-                <TableRow key={user.id} className="hover:bg-gray-50">
-                  <TableCell>
-                    <Checkbox
-                      checked={selectedRows.includes(user.id)}
-                      onCheckedChange={(checked) => handleSelectRow(user.id, checked as boolean)}
-                    />
-                  </TableCell>
-                  <TableCell>
-                    <div className="flex items-center gap-3">
-                      <Image
-                        src={avatar}
-                        alt={user.name}
-                        width={40}
-                        height={40}
-                        className="rounded-full w-10 h-10"
-                      />
-                      <div>
-                        <div className="font-medium">{user.name}</div>
-                        <div className="text-sm text-gray-500">{user.email}</div>
-                      </div>
-                    </div>
-                  </TableCell>
-                  <TableCell className="text-gray-600">{user.address}</TableCell>
-                  <TableCell>
-                    <span
-                      className={`inline-flex px-2 py-1 text-xs font-medium rounded-full ${
-                        user.subscription === "Active"
-                          ? "bg-green-100 text-green-800"
-                          : user.subscription === "Trial Plan"
-                            ? "bg-blue-100 text-blue-800"
-                            : "bg-gray-100 text-gray-800"
-                      }`}
-                    >
-                      {user.subscription}
-                    </span>
-                  </TableCell>
-                  <TableCell className="text-gray-600">{user.lastRunTime}</TableCell>
-                  <TableCell>
-                    <div className="flex items-center gap-2">
-                      <Button variant="ghost" size="sm">
-                        <Trash2 className="w-4 h-4 text-gray-400 hover:text-red-500" />
-                      </Button>
-                      <Button variant="ghost" size="sm">
-                        <Edit className="w-4 h-4 text-gray-400 hover:text-gray-600" />
-                      </Button>
-                    </div>
+              {isLoading ? (
+                <TableRow>
+                  <TableCell colSpan={7} className="text-center py-8">
+                    Loading users...
                   </TableCell>
                 </TableRow>
-              ))}
+              ) : users.length === 0 ? (
+                <TableRow>
+                  <TableCell colSpan={7} className="text-center py-8">
+                    No users found
+                  </TableCell>
+                </TableRow>
+              ) : (
+                users.map((user) => (
+                  <TableRow key={user.id} className="hover:bg-gray-50">
+                    <TableCell>
+                      <Checkbox
+                        checked={selectedRows.includes(user.id)}
+                        onCheckedChange={(checked) => handleSelectRow(user.id, checked as boolean)}
+                      />
+                    </TableCell>
+                    <TableCell>
+                      <div className="flex items-center gap-3">
+                        <Image
+                          src={avatar}
+                          alt={user.fullName}
+                          width={40}
+                          height={40}
+                          className="rounded-full w-10 h-10"
+                        />
+                        <div>
+                          <div className="font-medium">{user.fullName}</div>
+                          {user.isAdmin && (
+                            <span className="text-xs bg-blue-100 text-blue-800 px-2 py-0.5 rounded-full">
+                              Admin
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                    </TableCell>
+                    <TableCell className="text-gray-600">{user.email}</TableCell>
+                    <TableCell className="text-gray-600">{user.profession || "N/A"}</TableCell>
+                    <TableCell className="text-gray-600">{formatAddress(user)}</TableCell>
+                    <TableCell className="text-gray-600">{formatDate(user.lastLoginAt)}</TableCell>
+                    <TableCell>
+                      <div className="flex items-center gap-2">
+                        <Button variant="ghost" size="sm">
+                          <Trash2 className="w-4 h-4 text-gray-400 hover:text-red-500" />
+                        </Button>
+                        <Button variant="ghost" size="sm">
+                          <Edit className="w-4 h-4 text-gray-400 hover:text-gray-600" />
+                        </Button>
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                ))
+              )}
             </TableBody>
           </Table>
 
           {/* Pagination */}
           <div className="flex items-center justify-between p-4 border-t">
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => setCurrentPage(Math.max(1, currentPage - 1))}
-              disabled={currentPage === 1}
-            >
-              <ChevronLeft className="w-4 h-4 mr-1" />
-              Previous
-            </Button>
+            <div className="text-sm text-gray-600">
+              Showing {(currentPage - 1) * itemsPerPage + 1} to {Math.min(currentPage * itemsPerPage, totalUsers)} of {totalUsers} users
+            </div>
+            
+            <div className="flex items-center gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setCurrentPage(Math.max(1, currentPage - 1))}
+                disabled={currentPage === 1 || isLoading}
+              >
+                <ChevronLeft className="w-4 h-4 mr-1" />
+                Previous
+              </Button>
 
-            <span className="text-sm text-gray-600">
-              Page {currentPage} of {totalPages}
-            </span>
+              <span className="text-sm text-gray-600">
+                Page {currentPage} of {totalPages}
+              </span>
 
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => setCurrentPage(Math.min(totalPages, currentPage + 1))}
-              disabled={currentPage === totalPages}
-            >
-              Next
-              <ChevronRight className="w-4 h-4 ml-1" />
-            </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setCurrentPage(Math.min(totalPages, currentPage + 1))}
+                disabled={currentPage === totalPages || isLoading}
+              >
+                Next
+                <ChevronRight className="w-4 h-4 ml-1" />
+              </Button>
+            </div>
           </div>
         </div>
       </div>

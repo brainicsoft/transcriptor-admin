@@ -58,7 +58,7 @@ export async function GET(req: NextRequest) {
 
     return NextResponse.json({
       success: true,
-      modules,
+      data:modules,
     });
   } catch (error) {
     console.error("Error fetching modules:", error);
