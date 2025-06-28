@@ -4,7 +4,7 @@
 import { useState, useEffect } from "react"
 import Image from "next/image"
 import avatar from '@/assets/avatar.jpg'
-import { Search, Filter, Plus, ChevronDown, ChevronUp, Trash2, Edit, ChevronLeft, ChevronRight } from "lucide-react"
+import { Search, Filter, Plus, ChevronDown, ChevronUp, Trash2, Edit } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Checkbox } from "@/components/ui/checkbox"
@@ -12,18 +12,10 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
 import { getData } from "@/app/axios/fetching"
 import DynamicModal from "../../form/DynamicModal"
+import { Pagination } from "../../Pagination"
+import { User } from "@/@types/user.interface"
 
-type User = {
-  id: string
-  fullName: string
-  email: string
-  profession?: string
-  country?: string
-  city?: string
-  isAdmin: boolean
-  createdAt: string
-  lastLoginAt?: string
-}
+
 
 type SortField = "fullName" | "email" | "profession" | "country" | "city" | "createdAt" | "lastLoginAt"
 type SortDirection = "asc" | "desc"
@@ -335,37 +327,14 @@ export default function UsersTable() {
           </Table>
 
           {/* Pagination */}
-          <div className="flex items-center justify-between p-4 border-t">
-            <div className="text-sm text-gray-600">
-              Showing {(currentPage - 1) * itemsPerPage + 1} to {Math.min(currentPage * itemsPerPage, totalUsers)} of {totalUsers} users
-            </div>
-
-            <div className="flex items-center gap-2">
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => setCurrentPage(Math.max(1, currentPage - 1))}
-                disabled={currentPage === 1 || isLoading}
-              >
-                <ChevronLeft className="w-4 h-4 mr-1" />
-                Previous
-              </Button>
-
-              <span className="text-sm text-gray-600">
-                Page {currentPage} of {totalPages}
-              </span>
-
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => setCurrentPage(Math.min(totalPages, currentPage + 1))}
-                disabled={currentPage === totalPages || isLoading}
-              >
-                Next
-                <ChevronRight className="w-4 h-4 ml-1" />
-              </Button>
-            </div>
-          </div>
+          <Pagination
+            currentPage={currentPage}
+            totalPages={totalPages}
+            totalItems={totalUsers}
+            itemsPerPage={itemsPerPage}
+            isLoading={isLoading}
+            onPageChange={(page) => setCurrentPage(page)}
+          />
         </div>
       </div>
       <DynamicModal
