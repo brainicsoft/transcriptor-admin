@@ -31,7 +31,6 @@ export default function LoginPage() {
       const data = await res.json();
 
       if (res.ok) {
-        console.log(data)
         // Save token to cookie/localStorage (based on your auth strategy)
         localStorage.setItem('token', data.accessToken);
 

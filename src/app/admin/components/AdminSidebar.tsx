@@ -37,7 +37,6 @@ export default function AdminSidebar({
                   <p className="text-sm font-medium text-white">Admin User</p>
                   <button 
                     onClick={() => {
-                      console.log('Logout');
                       onClose();
                     }}
                     className="flex items-center text-sm text-indigo-200 hover:text-white mt-1"
@@ -97,7 +96,6 @@ export default function AdminSidebar({
                 <p className="text-sm font-medium text-white">Admin User</p>
                 <button 
                   onClick={() => {
-                    console.log('Logout');
                     onClose();
                   }}
                   className="flex items-center text-sm text-indigo-200 hover:text-white mt-1"

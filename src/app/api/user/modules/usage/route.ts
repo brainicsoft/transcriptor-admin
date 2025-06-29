@@ -15,7 +15,6 @@ export async function GET(req: NextRequest) {
         { status: 401 }
       );
     }
-    console.log(user);
 
     if(generate === 'true') {
         const modules = await prisma.module.findMany({

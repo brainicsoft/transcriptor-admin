@@ -43,13 +43,12 @@ const moduleColumns = [
     sortable: true,
     cell: (value: string) => (
       <span
-        className={`inline-flex px-2 py-1 text-xs font-medium rounded-full ${
-          value === "active"
+        className={`inline-flex px-2 py-1 text-xs font-medium rounded-full ${value === "active"
             ? "bg-green-100 text-green-800"
             : value === "hold"
-            ? "bg-yellow-100 text-yellow-800"
-            : "bg-gray-100 text-gray-800"
-        }`}
+              ? "bg-yellow-100 text-yellow-800"
+              : "bg-gray-100 text-gray-800"
+          }`}
       >
         {value.charAt(0).toUpperCase() + value.slice(1)}
       </span>
@@ -76,41 +75,35 @@ const moduleColumns = [
     cell: (value: string) => new Date(value).toLocaleDateString(),
   },
 ]
-
-const moduleFilterOptions = [
-  {
-    field: "status",
-    label: "Status",
-    options: [
-      { value: "all", label: "All Statuses" },
-      { value: "active", label: "Active" },
-      { value: "hold", label: "On Hold" },
-    ],
-  },
-]
+type SortField = any
+type SortDirection = "asc" | "desc"
 
 export default function ModulesTable() {
   const [modules, setModules] = useState<Module[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [searchTerm, setSearchTerm] = useState("")
-  const [currentPage, setCurrentPage] = useState(1)
-  const [statusFilter, setStatusFilter] = useState("all")
+  const [currentPage] = useState(1)
+  const [statusFilter] = useState("all")
+  const [sortField, setSortField] = useState<SortField>("name")
+  const [sortDirection, setSortDirection] = useState<SortDirection>("asc")
   const itemsPerPage = 10
   const [totalModules, setTotalModules] = useState(0)
-
   const fetchModules = async () => {
     setIsLoading(true)
     try {
       const params = new URLSearchParams({
         page: currentPage.toString(),
         perPage: itemsPerPage.toString(),
+        sortBy: sortField,
+        order: sortDirection,
         search: searchTerm,
         ...(statusFilter !== "all" && { status: statusFilter }),
       })
+        
 
       const response = await getData(`/admin/modules?${params.toString()}`)
       setModules(response.data)
-      setTotalModules(response.meta.total)
+      setTotalModules(response.meta)
     } catch (error) {
       console.error("Error fetching modules:", error)
       alert("Failed to fetch modules")
@@ -125,7 +118,7 @@ export default function ModulesTable() {
     }, 300)
 
     return () => clearTimeout(debounceTimer)
-  }, [searchTerm, currentPage, statusFilter])
+  }, [searchTerm, currentPage, statusFilter,sortField,sortDirection])
 
   const handleAddModule = () => {
     // Add module logic
@@ -142,34 +135,26 @@ export default function ModulesTable() {
     console.log("Delete module:", module)
   }
 
-  const handleStatusFilterChange = (value: string) => {
-    setStatusFilter(value)
-    setCurrentPage(1) // Reset to first page when filter changes
-  }
-
   return (
     <div>
       <DataTable
         data={modules}
         columns={moduleColumns}
+        meta={totalModules}
         title="Modules"
         setSearchTerm={setSearchTerm}
+        setSortField={setSortField}
+        sortDirection={sortDirection}
+        setSortDirection={setSortDirection}
         searchTerm={searchTerm}
         searchableFields={["name"]}
-        filterOptions={moduleFilterOptions}
         onAdd={handleAddModule}
         onEdit={handleEditModule}
         onDelete={handleDeleteModule}
+        sortField={sortField}
         isLoading={isLoading}
-        pagination={{
-          currentPage,
-          totalItems: totalModules,
-          itemsPerPage,
-          onPageChange: setCurrentPage,
-        }}
-        onFilterChange={(field, value) => {
-          if (field === "status") handleStatusFilterChange(value)
-        }}
+        
+       
       />
     </div>
   )

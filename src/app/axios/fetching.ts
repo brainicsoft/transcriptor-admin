@@ -37,9 +37,7 @@ export async function deleteData(endpoint:string) {
 
 export async function updateData(endpoint:string, data:any) {
   try {
-    console.log(data);
     const response = await axiosInstance.patch(`${endpoint}`, data);
-    console.log(response);
     return response.data;
   } catch (error:any) {
     alert(error.message);

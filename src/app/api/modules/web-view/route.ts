@@ -58,7 +58,6 @@ export async function GET(req: NextRequest) {
       },
     });
   } catch (error) {
-    console.log(error);
     return NextResponse.json(
       { error: "Module not found or missing index.html" },
       { status: 404 }

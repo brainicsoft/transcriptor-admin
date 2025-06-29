@@ -1,30 +1,29 @@
+/* eslint-disable react-hooks/exhaustive-deps */
 /* eslint-disable @typescript-eslint/no-explicit-any */
 "use client"
 import { useState, useMemo } from "react"
-import { Search, Filter, Plus, ChevronDown, ChevronUp, Trash2, Edit, ChevronLeft, ChevronRight } from "lucide-react"
+import { Search,  Plus, ChevronDown, ChevronUp, Trash2, Edit } from "lucide-react"
 
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Checkbox } from "@/components/ui/checkbox"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
+import { Pagination } from "../../Pagination"
 
-type ColumnDefinition<T> = {
-  id: string
-  header: string
-  accessor: keyof T | ((row: T) => React.ReactNode)
-  cell?: (value: unknown, row: T) => React.ReactNode
-  sortable?: boolean
-  width?: string
-}
 
 type DataTableProps<T> = {
   data: T[]
-  columns: ColumnDefinition<T>[]
+  columns: any,
+  isLoading:boolean
   defaultSortField?: keyof T
   defaultSortDirection?: "asc" | "desc"
   setSearchTerm?:any
-  searchTerm?:string
+  sortField?:any,
+  setSortField?:any
+  searchTerm?:string,
+  sortDirection?:any
+  setSortDirection?:any,
+  meta?:any
   itemsPerPage?: number
   searchableFields?: (keyof T)[]
   filterOptions?: {
@@ -43,12 +42,15 @@ type DataTableProps<T> = {
 export function DataTable<T extends { id: number | string }>({
   data,
   columns,
-  defaultSortField,
-  defaultSortDirection = "asc",
   itemsPerPage = 5,
   searchableFields,
   searchTerm,
-  filterOptions,
+  sortField,
+  setSortField,
+  sortDirection,
+  setSortDirection,
+  isLoading,
+  meta,
   onAdd,
   onEdit,
   onDelete,
@@ -58,57 +60,22 @@ export function DataTable<T extends { id: number | string }>({
   title,
 }: DataTableProps<T>) {
   const [selectedRows, setSelectedRows] = useState<(number | string)[]>([])
-  const [sortField, setSortField] = useState<keyof T>(defaultSortField || columns[0].id as keyof T)
-  const [sortDirection, setSortDirection] = useState<"asc" | "desc">(defaultSortDirection)
   const [currentPage, setCurrentPage] = useState(1)
-  const [activeFilters, setActiveFilters] = useState<Record<string, string>>({})
 
-const filteredAndSortedData = useMemo(() => {
-    // Safely handle data prop
-    let filtered = Array.isArray(data) ? [...data] : []
-    
-
-    // Apply filters
-    Object.entries(activeFilters).forEach(([field, value]) => {
-      if (value) {
-        filtered = filtered.filter((item) => item[field as keyof T] === value)
-      }
-    })
-
-    // Apply sorting
-    filtered.sort((a, b) => {
-      const aValue = a[sortField]
-      const bValue = b[sortField]
-
-      if (typeof aValue === "string" && typeof bValue === "string") {
-        return sortDirection === "asc"
-          ? aValue.localeCompare(bValue)
-          : bValue.localeCompare(aValue)
-      }
-
-      if (typeof aValue === "number" && typeof bValue === "number") {
-        return sortDirection === "asc" ? aValue - bValue : bValue - aValue
-      }
-
-      return 0
-    })
-
-    return filtered
-  }, [data, sortField, sortDirection, activeFilters, searchableFields])
-
-  const totalPages = Math.ceil(filteredAndSortedData.length / itemsPerPage)
+  const totalPages = Math.ceil(data.length / itemsPerPage)
   const paginatedData = useMemo(() => {
     const startIndex = (currentPage - 1) * itemsPerPage
-    return filteredAndSortedData.slice(startIndex, startIndex + itemsPerPage)
-  }, [filteredAndSortedData, currentPage, itemsPerPage])
+    return data.slice(startIndex, startIndex + itemsPerPage)
+  }, [data, currentPage, itemsPerPage])
 
-  const handleSort = (field: keyof T) => {
+  const handleSort = (field: any) => {
     if (sortField === field) {
       setSortDirection(sortDirection === "asc" ? "desc" : "asc")
     } else {
       setSortField(field)
       setSortDirection("asc")
     }
+    setCurrentPage(1)
   }
 
   const handleSelectAll = (checked: boolean) => {
@@ -148,36 +115,7 @@ const filteredAndSortedData = useMemo(() => {
           {/* Header */}
           <div className="flex items-center justify-between p-4 border-b">
             <div className="flex items-center gap-3">
-              {filterOptions && (
-                <DropdownMenu>
-                  <DropdownMenuTrigger asChild>
-                    <Button variant="outline" size="sm">
-                      <Filter className="w-4 h-4 mr-2" />
-                      Filters
-                    </Button>
-                  </DropdownMenuTrigger>
-                  <DropdownMenuContent>
-                    {filterOptions.map((filter) => (
-                      <div key={String(filter.field)} className="p-1">
-                        <div className="px-2 py-1 text-xs font-medium text-gray-500">{filter.label}</div>
-                        {filter.options.map((option) => (
-                          <DropdownMenuItem
-                            key={option.value}
-                            onClick={() =>
-                              setActiveFilters({
-                                ...activeFilters,
-                                [filter.field as string]: option.value === "all" ? "" : option.value,
-                              })
-                            }
-                          >
-                            {option.label}
-                          </DropdownMenuItem>
-                        ))}
-                      </div>
-                    ))}
-                  </DropdownMenuContent>
-                </DropdownMenu>
-              )}
+             
 
               {onAdd && (
                 <Button size="sm" className="bg-slate-800 hover:bg-slate-700" onClick={onAdd}>
@@ -298,34 +236,14 @@ const filteredAndSortedData = useMemo(() => {
             </TableBody>
           </Table>
 
-          {/* Pagination */}
-          {totalPages > 1 && (
-            <div className="flex items-center justify-between p-4 border-t">
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => setCurrentPage(Math.max(1, currentPage - 1))}
-                disabled={currentPage === 1}
-              >
-                <ChevronLeft className="w-4 h-4 mr-1" />
-                Previous
-              </Button>
-
-              <span className="text-sm text-gray-600">
-                Page {currentPage} of {totalPages}
-              </span>
-
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => setCurrentPage(Math.min(totalPages, currentPage + 1))}
-                disabled={currentPage === totalPages}
-              >
-                Next
-                <ChevronRight className="w-4 h-4 ml-1" />
-              </Button>
-            </div>
-          )}
+         <Pagination
+                    currentPage={currentPage}
+                    totalPages={totalPages}
+                    totalItems={meta.total}
+                    itemsPerPage={meta.perPage}
+                    isLoading={isLoading}
+                    onPageChange={(page) => setCurrentPage(page)}
+                  />
         </div>
       </div>
     </div>
