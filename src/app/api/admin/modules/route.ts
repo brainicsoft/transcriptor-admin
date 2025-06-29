@@ -27,7 +27,12 @@ export async function GET(req: NextRequest) {
 
     // Parse query parameters
     const url = new URL(req.url);
+    const page = parseInt(url.searchParams.get("page") || "1");
+    const perPage = parseInt(url.searchParams.get("perPage") || "10");
     const status = url.searchParams.get("status") || undefined;
+    const search = url.searchParams.get("search") || undefined;
+    const sortBy = url.searchParams.get("sortBy") || "createdAt";
+    const order = url.searchParams.get("order") || "desc";
 
     // Build the query
     const query: any = {};
@@ -36,7 +41,17 @@ export async function GET(req: NextRequest) {
       query.status = status;
     }
 
-    // Get all modules
+    if (search) {
+      query.name = {
+        contains: search,
+        mode: "insensitive",
+      };
+    }
+
+    // Get total count for pagination
+    const total = await prisma.module.count({ where: query });
+
+    // Get paginated modules
     const modules = await prisma.module.findMany({
       where: query,
       include: {
@@ -52,13 +67,22 @@ export async function GET(req: NextRequest) {
         },
       },
       orderBy: {
-        createdAt: "desc",
+        [sortBy]: order,
       },
+      skip: (page - 1) * perPage,
+      take: perPage,
     });
 
     return NextResponse.json({
       success: true,
-      data:modules,
+      data: modules,
+      meta: {
+      total,
+        currentPage: page,
+        perPage,
+        nextPage: page < Math.ceil(total / perPage) ? page + 1 : null,
+        totalPages: Math.ceil(total / perPage),
+      },
     });
   } catch (error) {
     console.error("Error fetching modules:", error);

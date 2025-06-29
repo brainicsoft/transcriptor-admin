@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 "use client"
 import { useState, useMemo } from "react"
 import { Search, Filter, Plus, ChevronDown, ChevronUp, Trash2, Edit, ChevronLeft, ChevronRight } from "lucide-react"
@@ -22,6 +23,8 @@ type DataTableProps<T> = {
   columns: ColumnDefinition<T>[]
   defaultSortField?: keyof T
   defaultSortDirection?: "asc" | "desc"
+  setSearchTerm?:any
+  searchTerm?:string
   itemsPerPage?: number
   searchableFields?: (keyof T)[]
   filterOptions?: {
@@ -44,16 +47,17 @@ export function DataTable<T extends { id: number | string }>({
   defaultSortDirection = "asc",
   itemsPerPage = 5,
   searchableFields,
+  searchTerm,
   filterOptions,
   onAdd,
   onEdit,
   onDelete,
   onRowSelect,
   rowActions,
+  setSearchTerm,
   title,
 }: DataTableProps<T>) {
   const [selectedRows, setSelectedRows] = useState<(number | string)[]>([])
-  const [searchTerm, setSearchTerm] = useState("")
   const [sortField, setSortField] = useState<keyof T>(defaultSortField || columns[0].id as keyof T)
   const [sortDirection, setSortDirection] = useState<"asc" | "desc">(defaultSortDirection)
   const [currentPage, setCurrentPage] = useState(1)
@@ -63,15 +67,6 @@ const filteredAndSortedData = useMemo(() => {
     // Safely handle data prop
     let filtered = Array.isArray(data) ? [...data] : []
     
-    // Apply search
-    if (searchTerm && searchableFields) {
-      filtered = filtered.filter((item) =>
-        searchableFields.some((field) => {
-          const value = item[field]
-          return String(value).toLowerCase().includes(searchTerm.toLowerCase())
-        })
-      )
-    }
 
     // Apply filters
     Object.entries(activeFilters).forEach(([field, value]) => {
@@ -99,7 +94,7 @@ const filteredAndSortedData = useMemo(() => {
     })
 
     return filtered
-  }, [data, searchTerm, sortField, sortDirection, activeFilters, searchableFields])
+  }, [data, sortField, sortDirection, activeFilters, searchableFields])
 
   const totalPages = Math.ceil(filteredAndSortedData.length / itemsPerPage)
   const paginatedData = useMemo(() => {
