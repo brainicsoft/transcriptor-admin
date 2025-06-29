@@ -177,7 +177,7 @@ export default function UsersTable() {
     openModal({
       title: 'Edit User',
       fields: editFields,
-      endpoint: `/user/${user.id}`,
+      endpoint: `/api/user/${user.id}`,
       method: 'PATCH',
       buttonText: 'Update User',
       initialData: user
