@@ -15,6 +15,7 @@ import DynamicModal from "../../form/DynamicModal"
 import { Pagination } from "../../Pagination"
 import { User } from "@/@types/user.interface"
 import { useRouter } from "next/navigation"
+import { UserDetailsModal } from "../../form/UserDetailsModal"
 
 type SortField = "fullName" | "email" | "profession" | "country" | "city" | "createdAt" | "lastLoginAt"
 type SortDirection = "asc" | "desc"
@@ -31,6 +32,14 @@ export default function UsersTable() {
   const [totalUsers, setTotalUsers] = useState(0)
   const [isLoading, setIsLoading] = useState(true)
   const router = useRouter()
+  const [selectedUser, setSelectedUser] = useState<User | null>(null);
+const [isDetailsModalOpen, setIsDetailsModalOpen] = useState(false);
+
+// Add this handler
+const handleRowClick = (user: User) => {
+  setSelectedUser(user);
+  setIsDetailsModalOpen(true);
+};
   const itemsPerPage = 10
   const [modalConfig, setModalConfig] = useState({
     isOpen: false,
@@ -385,7 +394,7 @@ export default function UsersTable() {
                           className="rounded-full w-10 h-10"
                         />
                         <div>
-                          <div className="font-medium">{user.fullName}</div>
+                          <div className="font-medium cursor-pointer text-blue-600"   onClick={() => handleRowClick(user)} >{user.fullName}</div>
                           {user.isAdmin && (
                             <span className="text-xs bg-blue-100 text-blue-800 px-2 py-0.5 rounded-full">
                               Admin
@@ -443,6 +452,34 @@ export default function UsersTable() {
         initialData={modalConfig.initialData}
         onSuccess={handleModalSuccess}
       />
+      <UserDetailsModal
+  isOpen={isDetailsModalOpen}
+  onClose={() => setIsDetailsModalOpen(false)}
+  user={{
+    fullName: selectedUser?.fullName || "",
+    email: selectedUser?.email || "",
+    createdAt: selectedUser?.createdAt 
+      ? new Date(selectedUser.createdAt).toLocaleDateString('en-US', {
+          day: 'numeric',
+          month: 'short',
+          year: 'numeric'
+        }) 
+      : "",
+    address: formatAddress(selectedUser || {} as User),
+    packages: [
+      {
+        name: "Transcriptor Basic",
+        description: "A module for transcription",
+        status: "active",
+      },
+      {
+        name: "Transcriptor Plus",
+        description: "A module for transcription",
+        status: "active",
+      },
+    ],
+  }}
+/>
     </div>
   )
 }
