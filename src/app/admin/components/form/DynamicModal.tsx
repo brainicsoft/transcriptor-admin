@@ -136,7 +136,12 @@ export default function DynamicModal({
       const headers = new Headers();
       if (type === 'json') {
         headers.append('Content-Type', 'application/json');
+        
       }
+      const token = localStorage.getItem('token');
+if (token) {
+  headers.append('Authorization', `Bearer ${token}`);
+}
       // For multipart, the browser will automatically set the Content-Type with boundary
 
       const response = await fetch(endpoint, {

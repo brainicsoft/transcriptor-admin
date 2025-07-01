@@ -4,13 +4,13 @@ import { verifyAccessToken } from "@/lib/jwt"
 // Function to extract user payload from authorization header
 export function getUserFromRequest(req: NextRequest) {
   try {
-    const authHeader = req.headers.get("authorization")
+const authHeader = req.headers.get("authorization")
+const cookieToken = req.cookies.get("token")?.value
 
-    if (!authHeader || !authHeader.startsWith("Bearer ")) {
-      return null
-    }
+  
 
-    const token = authHeader.split(" ")[1]
+    const token = authHeader.split(" ")[1] || cookieToken
+    console.log(token,'token ')
     return verifyAccessToken(token)
   } catch (error) {
     console.error("Error extracting user from request:", error)

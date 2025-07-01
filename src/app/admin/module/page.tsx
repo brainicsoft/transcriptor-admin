@@ -3,7 +3,7 @@
 
 import { useState, useEffect } from "react"
 import { DataTable } from "../components/ui/tables/DataTable"
-import { getData } from "@/app/axios/fetching"
+import { deleteData, getData } from "@/app/axios/fetching"
 import DynamicModal from "../components/form/DynamicModal"
 
 interface Module {
@@ -37,23 +37,36 @@ const moduleFields: FieldConfig[] = [
     type: 'text',
     required: false
   },
-  {
-    name: 'icon',
-    label: 'Module Icon',
-    type: 'file',
-    required: false
-  },
-  {
-    name: 'status',
-    label: 'Status',
-    type: 'select',
-    required: true,
-    options: [
-      { value: 'active', label: 'Active' },
-      { value: 'inactive', label: 'Inactive' },
-      { value: 'hold', label: 'On Hold' }
-    ]
-  }
+  // {
+  //   name: 'basic_hasTextProduction',
+  //   label: 'Has Text Production',
+  //   type: 'select',
+  //   required: true,
+  //   options: [
+  //     { value: 'true', label: 'Yes' },
+  //     { value: 'false', label: 'No' }
+  //   ]
+  // },
+  //   {
+  //   name: 'basic_hasConclusion',
+  //   label: 'Basic Conclution',
+  //   type: 'select',
+  //   required: true,
+  //   options: [
+  //     { value: 'true', label: 'Yes' },
+  //     { value: 'false', label: 'No' }
+  //   ]
+  // },
+  //     {
+  //   name: 'basic_hasMap',
+  //   label: 'Basic Hashmap',
+  //   type: 'select',
+  //   required: true,
+  //   options: [
+  //     { value: 'true', label: 'Yes' },
+  //     { value: 'false', label: 'No' }
+  //   ]
+  // }
 ];
 
 const moduleColumns = [
@@ -141,7 +154,7 @@ export default function ModulesTable() {
   const [sortDirection, setSortDirection] = useState<SortDirection>("asc")
   const itemsPerPage = 10
   const [totalModules, setTotalModules] = useState(0)
-
+const [refresh,setRefresh] = useState(Math.random())
   const fetchModules = async () => {
     setIsLoading(true)
     try {
@@ -171,7 +184,7 @@ export default function ModulesTable() {
     }, 300)
 
     return () => clearTimeout(debounceTimer)
-  }, [searchTerm, currentPage, statusFilter, sortField, sortDirection])
+  }, [searchTerm, currentPage, statusFilter, sortField, sortDirection,refresh])
 
   const handleEditModule = (module: Module) => {
     openModal({
@@ -192,11 +205,9 @@ export default function ModulesTable() {
   const handleDeleteModule = async (module: Module) => {
     if (confirm(`Are you sure you want to delete ${module.name}?`)) {
       try {
-        await fetch(`/admin/modules/${module.id}`, {
-          method: 'DELETE',
-          credentials: 'include'
-        });
-        fetchModules();
+        await deleteData(`/admin/modules/${module.id}`)
+         alert("delete module successfully");
+     setRefresh(Math.random())
       } catch (error) {
         console.error("Error deleting module:", error);
         alert("Failed to delete module");
@@ -234,7 +245,7 @@ export default function ModulesTable() {
     openModal({
       title: 'Create New Module',
       fields: moduleFields,
-      endpoint: '/admin/modules',
+      endpoint: '/api/admin/modules',
       method: 'POST',
       buttonText: 'Create Module',
       initialData: {
