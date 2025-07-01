@@ -108,6 +108,9 @@ export async function POST(req: NextRequest) {
       packages,
     });
   } catch (error) {
-    
+      console.error("Error fetching user packages:", error)
+    return NextResponse.json(
+      { success: false, message: "An error occurred while fetching user packages" },
+      { status: 500 },)
   }
 }

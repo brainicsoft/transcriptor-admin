@@ -172,7 +172,7 @@ const handleRowClick = (user: User) => {
     openModal({
       title: 'Create New User',
       fields: userFields,
-      endpoint: '/user',
+      endpoint: '/api/auth/signup',
       method: 'POST',
       buttonText: 'Create User',
       initialData: {}

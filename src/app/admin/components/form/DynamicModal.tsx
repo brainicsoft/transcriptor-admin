@@ -7,7 +7,7 @@ import { useRouter } from 'next/navigation';
 interface FieldConfig {
   name: string;
   label: string;
-  type: 'text' | 'email' | 'password' | 'select' | 'number' | 'date';
+  type: 'text' | 'email' | 'password' | 'select' | 'number' | 'date' | 'file';
   required?: boolean;
   options?: { value: string; label: string }[];
   disabled?: boolean;
@@ -24,6 +24,7 @@ interface DynamicModalProps {
   buttonText?: string;
   onSuccess?: (data: any) => void;
   validate?: (data: Record<string, any>) => Record<string, string> | null;
+  type?: 'json' | 'multipart';
 }
 
 export default function DynamicModal({
@@ -35,27 +36,84 @@ export default function DynamicModal({
   endpoint,
   method,
   buttonText = 'Submit',
+  type = 'json',
   onSuccess,
   validate
 }: DynamicModalProps) {
   const router = useRouter();
   const [formData, setFormData] = useState<Record<string, any>>(initialData);
+  const [fileData, setFileData] = useState<Record<string, File>>({});
   const [isLoading, setIsLoading] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [formError, setFormError] = useState<string | null>(null);
 
   useEffect(() => {
     setFormData(initialData);
+    setFileData({});
     setErrors({});
     setFormError(null);
   }, [isOpen, initialData]);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
-    const { name, value } = e.target;
-    setFormData(prev => ({
-      ...prev,
-      [name]: value
-    }));
+    const { name, value, type } = e.target as HTMLInputElement;
+    
+    if (type === 'file') {
+      const files = (e.target as HTMLInputElement).files;
+      if (files && files.length > 0) {
+        setFileData(prev => ({
+          ...prev,
+          [name]: files[0]
+        }));
+      }
+    } else {
+      setFormData(prev => ({
+        ...prev,
+        [name]: value
+      }));
+    }
+  };
+
+  const prepareFormData = () => {
+    if (type === 'multipart') {
+      const formDataObj = new FormData();
+      
+      // Add all form fields to FormData
+      fields.forEach(field => {
+        const value = formData[field.name];
+        
+        // Skip if value is undefined or null
+        if (value === undefined || value === null) return;
+        
+        // Handle different field types
+        if (field.type === 'file') {
+          // File was already captured in fileData state
+          if (fileData[field.name]) {
+            formDataObj.append(field.name, fileData[field.name]);
+          }
+        } else if (field.type === 'select' && Array.isArray(value)) {
+          // Handle multi-select arrays
+          value.forEach((item: string) => formDataObj.append(field.name, item));
+        } else {
+          // Convert all other values to string and add to FormData
+          formDataObj.append(field.name, String(value));
+        }
+      });
+
+      return formDataObj;
+    } else {
+      // For JSON, transform the data as needed
+      const transformedData = { ...formData };
+
+      // Handle special transformations
+      if (typeof transformedData.deviceIds === 'string') {
+        transformedData.deviceIds = transformedData.deviceIds
+          .split(',')
+          .map((id: string) => Number(id.replace(/\s+/g, '')))
+          .filter((id: number) => !isNaN(id));
+      }
+
+      return JSON.stringify(transformedData);
+    }
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -71,24 +129,20 @@ export default function DynamicModal({
         return;
       }
     }
-    const transformedData = { ...formData };
-
-    if (typeof transformedData.deviceIds === 'string') {
-      transformedData.deviceIds = transformedData.deviceIds
-        .split(',')
-        .map((id: string) => Number(id.replace(/\s+/g, '')))
-        .filter((id: number) => !isNaN(id)); // remove invalid numbers
-    }
-    
-  
 
     try {
+      const body = prepareFormData();
+      
+      const headers = new Headers();
+      if (type === 'json') {
+        headers.append('Content-Type', 'application/json');
+      }
+      // For multipart, the browser will automatically set the Content-Type with boundary
+
       const response = await fetch(endpoint, {
         method,
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(transformedData),
+        headers,
+        body,
         credentials: 'include',
       });
 
@@ -131,7 +185,7 @@ export default function DynamicModal({
           </button>
         </div>
 
-        <form onSubmit={handleSubmit} className="space-y-4">
+        <form onSubmit={handleSubmit} className="space-y-4" encType={type === 'multipart' ? 'multipart/form-data' : undefined}>
           {fields.map((field) => (
             <div key={field.name}>
               <label className="block text-sm font-medium text-gray-700 mb-1">
@@ -153,6 +207,20 @@ export default function DynamicModal({
                     </option>
                   ))}
                 </select>
+              ) : field.type === 'file' ? (
+                <div>
+                  <input
+                    type="file"
+                    name={field.name}
+                    onChange={handleChange}
+                    required={field.required}
+                    disabled={field.disabled || isLoading}
+                    className="w-full px-3 py-2 border border-gray-300 rounded"
+                  />
+                  {fileData[field.name]?.name && (
+                    <p className="text-sm text-gray-500 mt-1">Selected: {fileData[field.name].name}</p>
+                  )}
+                </div>
               ) : (
                 <input
                   type={field.type}
@@ -176,7 +244,7 @@ export default function DynamicModal({
             <button
               type="submit"
               disabled={isLoading}
-              className="w-full bg-primary text-white py-2 rounded hover:bg-secondary"
+              className="w-full bg-primary text-white py-2 rounded hover:bg-secondary disabled:opacity-50"
             >
               {isLoading ? 'Submitting...' : buttonText}
             </button>

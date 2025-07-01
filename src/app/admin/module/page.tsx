@@ -4,6 +4,7 @@
 import { useState, useEffect } from "react"
 import { DataTable } from "../components/ui/tables/DataTable"
 import { getData } from "@/app/axios/fetching"
+import DynamicModal from "../components/form/DynamicModal"
 
 interface Module {
   id: string
@@ -22,6 +23,38 @@ interface ModuleTier {
   productId: string
   // Add other tier fields as needed
 }
+
+const moduleFields: FieldConfig[] = [
+  {
+    name: 'name',
+    label: 'Module Name',
+    type: 'text',
+    required: true
+  },
+  {
+    name: 'description',
+    label: 'Description',
+    type: 'text',
+    required: false
+  },
+  {
+    name: 'icon',
+    label: 'Module Icon',
+    type: 'file',
+    required: false
+  },
+  {
+    name: 'status',
+    label: 'Status',
+    type: 'select',
+    required: true,
+    options: [
+      { value: 'active', label: 'Active' },
+      { value: 'inactive', label: 'Inactive' },
+      { value: 'hold', label: 'On Hold' }
+    ]
+  }
+];
 
 const moduleColumns = [
   {
@@ -44,10 +77,10 @@ const moduleColumns = [
     cell: (value: string) => (
       <span
         className={`inline-flex px-2 py-1 text-xs font-medium rounded-full ${value === "active"
-            ? "bg-green-100 text-green-800"
-            : value === "hold"
-              ? "bg-yellow-100 text-yellow-800"
-              : "bg-gray-100 text-gray-800"
+          ? "bg-green-100 text-green-800"
+          : value === "hold"
+            ? "bg-yellow-100 text-yellow-800"
+            : "bg-gray-100 text-gray-800"
           }`}
       >
         {value.charAt(0).toUpperCase() + value.slice(1)}
@@ -75,10 +108,30 @@ const moduleColumns = [
     cell: (value: string) => new Date(value).toLocaleDateString(),
   },
 ]
+
 type SortField = any
 type SortDirection = "asc" | "desc"
 
+interface FieldConfig {
+  name: string;
+  label: string;
+  type: 'text' | 'email' | 'password' | 'select' | 'number' | 'date' | 'file';
+  required?: boolean;
+  options?: { value: string; label: string }[];
+  disabled?: boolean;
+}
+
 export default function ModulesTable() {
+  const [modalConfig, setModalConfig] = useState({
+    isOpen: false,
+    title: '',
+    fields: [] as FieldConfig[],
+    endpoint: '',
+    method: 'GET' as 'POST' | 'PATCH' | 'PUT' | 'GET',
+    buttonText: '',
+    initialData: {} as any,
+    type: 'multipart' as 'multipart' | 'json'
+  });
   const [modules, setModules] = useState<Module[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [searchTerm, setSearchTerm] = useState("")
@@ -88,6 +141,7 @@ export default function ModulesTable() {
   const [sortDirection, setSortDirection] = useState<SortDirection>("asc")
   const itemsPerPage = 10
   const [totalModules, setTotalModules] = useState(0)
+
   const fetchModules = async () => {
     setIsLoading(true)
     try {
@@ -99,7 +153,6 @@ export default function ModulesTable() {
         search: searchTerm,
         ...(statusFilter !== "all" && { status: statusFilter }),
       })
-        
 
       const response = await getData(`/admin/modules?${params.toString()}`)
       setModules(response.data)
@@ -118,22 +171,78 @@ export default function ModulesTable() {
     }, 300)
 
     return () => clearTimeout(debounceTimer)
-  }, [searchTerm, currentPage, statusFilter,sortField,sortDirection])
-
-  const handleAddModule = () => {
-    // Add module logic
-    console.log("Add module clicked")
-  }
+  }, [searchTerm, currentPage, statusFilter, sortField, sortDirection])
 
   const handleEditModule = (module: Module) => {
-    // Edit module logic
-    console.log("Edit module:", module)
+    openModal({
+      title: 'Edit Module',
+      fields: moduleFields,
+      endpoint: `/admin/modules/${module.id}`,
+      method: 'PATCH',
+      buttonText: 'Update Module',
+      initialData: {
+        name: module.name,
+        description: module.description,
+        status: module.status
+      },
+      type: 'multipart'
+    });
   }
 
-  const handleDeleteModule = (module: Module) => {
-    // Delete module logic
-    console.log("Delete module:", module)
+  const handleDeleteModule = async (module: Module) => {
+    if (confirm(`Are you sure you want to delete ${module.name}?`)) {
+      try {
+        await fetch(`/admin/modules/${module.id}`, {
+          method: 'DELETE',
+          credentials: 'include'
+        });
+        fetchModules();
+      } catch (error) {
+        console.error("Error deleting module:", error);
+        alert("Failed to delete module");
+      }
+    }
   }
+
+  const openModal = (config: {
+    title: string;
+    fields: FieldConfig[];
+    endpoint: string;
+    method: 'POST' | 'PATCH' | 'PUT' | 'GET';
+    buttonText: string;
+    initialData?: any;
+    type?: 'multipart' | 'json'
+  }) => {
+    setModalConfig({
+      ...config,
+      isOpen: true,
+      initialData: config.initialData || {},
+      type: config.type || 'multipart'
+    });
+  };
+
+  const closeModal = () => {
+    setModalConfig(prev => ({ ...prev, isOpen: false }));
+  };
+
+  const handleModalSuccess = () => {
+    closeModal();
+    fetchModules();
+  };
+
+  const handleCreateModule = () => {
+    openModal({
+      title: 'Create New Module',
+      fields: moduleFields,
+      endpoint: '/admin/modules',
+      method: 'POST',
+      buttonText: 'Create Module',
+      initialData: {
+        status: 'active' // Default status
+      },
+      type: 'multipart'
+    });
+  };
 
   return (
     <div>
@@ -148,13 +257,23 @@ export default function ModulesTable() {
         setSortDirection={setSortDirection}
         searchTerm={searchTerm}
         searchableFields={["name"]}
-        onAdd={handleAddModule}
+        onAdd={handleCreateModule}
         onEdit={handleEditModule}
         onDelete={handleDeleteModule}
         sortField={sortField}
         isLoading={isLoading}
-        
-       
+      />
+      <DynamicModal
+        isOpen={modalConfig.isOpen}
+        onClose={closeModal}
+        title={modalConfig.title}
+        fields={modalConfig.fields}
+        endpoint={modalConfig.endpoint}
+        method={modalConfig.method}
+        buttonText={modalConfig.buttonText}
+        initialData={modalConfig.initialData}
+        onSuccess={handleModalSuccess}
+        type={modalConfig.type}
       />
     </div>
   )
