@@ -2,6 +2,8 @@
 
 import { useState, useEffect, useCallback } from "react"
 import { Upload, X, File } from "lucide-react"
+import { putData } from "@/app/axios/fetching"
+import { useRouter } from "next/navigation"
 
 interface ModuleTier {
   file?: File | null
@@ -22,23 +24,37 @@ interface EditModalProps {
   isOpen: boolean
   onClose: () => void
   initialData: ModuleData
-  onSave: (data: ModuleData) => Promise<void>
-  isLoading?: boolean
 }
 
-export default function EditModal({ isOpen, onClose, initialData, onSave, isLoading = false }: EditModalProps) {
-  const [formData, setFormData] = useState<ModuleData>(initialData)
+export default function EditModal({ isOpen, onClose, initialData }: EditModalProps) {
+  const [saving, setSaving] = useState(false)
+      const router = useRouter()
+
+  const [formData, setFormData] = useState<ModuleData>({
+    name: '',
+    description: '',
+    basic: { entitlement: '', selectedTexts: [] },
+    plus: { entitlement: '', selectedTexts: [] },
+    premium: { entitlement: '', selectedTexts: [] },
+    ...initialData
+  })
+
   const [errors, setErrors] = useState<Record<string, string>>({})
   const [dragActive, setDragActive] = useState(false)
 
   useEffect(() => {
     if (isOpen) {
-      setFormData(initialData)
+      setFormData({
+        name: '',
+        description: '',
+        basic: { entitlement: '', selectedTexts: [] },
+        plus: { entitlement: '', selectedTexts: [] },
+        premium: { entitlement: '', selectedTexts: [] },
+        ...initialData
+      })
       setErrors({})
     }
   }, [isOpen, initialData])
-
-
 
   const handleDrag = useCallback((e: React.DragEvent) => {
     e.preventDefault()
@@ -96,8 +112,33 @@ export default function EditModal({ isOpen, onClose, initialData, onSave, isLoad
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
+    setSaving(true)
+    // Convert to FormData
+    const formDataObj = new FormData()
+
+    // Log the data before sending
+    console.log("Form data to be sent:", {
+      basic_file: formData.basic?.file,
+      plus_file: formData.plus?.file,
+      premium_file: formData.premium?.file
+    })
+
+    // Add files if they exist
+    if (formData.basic?.file) {
+      formDataObj.append("basic_zipFile", formData.basic.file)
+    }
+    if (formData.plus?.file) {
+      formDataObj.append("plus_zipFile", formData.plus.file)
+    }
+    if (formData.premium?.file) {
+      formDataObj.append("premium_zipFile", formData.premium.file)
+    }
+
     try {
-      await onSave(formData)
+      // await onSave(formDataObj)
+      await putData(`/admin/modules/${initialData.id}`, formDataObj)
+      setSaving(false)
+      router.refresh()
       onClose()
     } catch (error) {
       console.error("Error saving module:", error)
@@ -118,7 +159,7 @@ export default function EditModal({ isOpen, onClose, initialData, onSave, isLoad
 
       {/* Upload Section */}
       <div className="mb-4">
-        <div 
+        <div
           className={`border-2 border-dashed rounded-lg p-4 ${dragActive ? "border-blue-500 bg-blue-50" : "border-gray-200 bg-gray-50"}`}
           onDragEnter={handleDrag}
           onDragOver={handleDrag}
@@ -136,7 +177,7 @@ export default function EditModal({ isOpen, onClose, initialData, onSave, isLoad
                   </p>
                 </div>
               </div>
-              <button 
+              <button
                 onClick={() => setFormData(prev => ({
                   ...prev,
                   [tier]: { ...prev[tier], file: null }
@@ -152,8 +193,8 @@ export default function EditModal({ isOpen, onClose, initialData, onSave, isLoad
               <p className="text-sm text-gray-600 mb-3">Upload Module as html</p>
               <label className="inline-block px-4 py-2 bg-gray-800 text-white rounded text-sm cursor-pointer">
                 Upload File
-                <input 
-                  type="file" 
+                <input
+                  type="file"
                   onChange={(e) => handleFileChange(tier, e)}
                   className="hidden"
                 />
@@ -168,10 +209,13 @@ export default function EditModal({ isOpen, onClose, initialData, onSave, isLoad
         <input
           type="text"
           placeholder="RevenueCat Entitlement"
-          value={formData[tier]?.entitlement}
+          value={formData[tier]?.entitlement || ''}
           onChange={(e) => setFormData(prev => ({
             ...prev,
-            [tier]: { ...prev[tier], entitlement: e.target.value }
+            [tier]: {
+              ...prev[tier],
+              entitlement: e.target.value
+            }
           }))}
           className="w-full px-3 py-2 border border-gray-300 rounded text-sm"
         />
@@ -186,9 +230,8 @@ export default function EditModal({ isOpen, onClose, initialData, onSave, isLoad
               key={text}
               type="button"
               onClick={() => handleTextSelection(tier, text)}
-              className={`w-full px-3 py-2 rounded text-sm border ${
-                isSelected ? "bg-blue-50 border-blue-300 text-blue-700" : "bg-gray-50 border-gray-200 text-gray-600"
-              }`}
+              className={`w-full px-3 py-2 rounded text-sm border ${isSelected ? "bg-blue-50 border-blue-300 text-blue-700" : "bg-gray-50 border-gray-200 text-gray-600"
+                }`}
             >
               {text}
             </button>
@@ -217,13 +260,13 @@ export default function EditModal({ isOpen, onClose, initialData, onSave, isLoad
             <input
               type="text"
               placeholder="Module Name"
-              value={formData.name}
+              value={formData.name || ''}
               onChange={(e) => setFormData(prev => ({ ...prev, name: e.target.value }))}
               className="w-full px-4 py-2 border border-gray-300 rounded-lg mb-3"
             />
             <textarea
               placeholder="Module Description"
-              value={formData.description}
+              value={formData.description || ''}
               onChange={(e) => setFormData(prev => ({ ...prev, description: e.target.value }))}
               rows={3}
               className="w-full px-4 py-2 border border-gray-300 rounded-lg"
@@ -246,10 +289,10 @@ export default function EditModal({ isOpen, onClose, initialData, onSave, isLoad
           <div className="flex justify-center">
             <button
               onClick={handleSubmit}
-              disabled={isLoading}
+              disabled={saving}
               className="px-6 py-2 bg-gray-800 text-white rounded-lg hover:bg-gray-700 disabled:opacity-50"
             >
-              {isLoading ? "Saving..." : "Save"}
+              {saving ? "Saving..." : "Save"}
             </button>
           </div>
         </div>

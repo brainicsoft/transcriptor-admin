@@ -111,7 +111,7 @@ export function DataTable<T extends { id: number | string }>({
 
   //  for Edit
 
-    const [isEditModalOpen, setIsEditModalOpen] = useState(true);
+    const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [currentModule, setCurrentModule] = useState<any>({
     name: '',
     description: '',
@@ -119,37 +119,13 @@ export function DataTable<T extends { id: number | string }>({
     plus: { entitlement: '', text: '' },
     premium: { entitlement: '', text: '' }
   });
-  const [isSaving, setIsSaving] = useState(false);
 
   const handleEditClick = (module:any) => {
     setCurrentModule(module);
     setIsEditModalOpen(true);
   };
 
-  const handleSave = async (data: any) => {
-    setIsSaving(true);
-    try {
-      // Call your API to save the data
-      const response = await fetch('/api/modules', {
-        method: data.id ? 'PUT' : 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(data),
-      });
-      
-      if (!response.ok) {
-        throw new Error('Failed to save module');
-      }
-      
-      // Handle successful save
-    } catch (error) {
-      console.error('Error saving module:', error);
-      throw error;
-    } finally {
-      setIsSaving(false);
-    }
-  };
+ 
 
   return (
     <div className="w-full bg-gray-50 min-h-screen p-6">
@@ -293,8 +269,6 @@ export function DataTable<T extends { id: number | string }>({
         isOpen={isEditModalOpen}
         onClose={() => setIsEditModalOpen(false)}
         initialData={currentModule}
-        onSave={handleSave}
-        isLoading={isSaving}
       />
     </div>
   )

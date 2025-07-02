@@ -42,4 +42,19 @@ export async function updateData(endpoint:string, data:any) {
   } catch (error:any) {
     alert(error.message);
   }
+  
+}
+
+export async function putData(endpoint:string, data:any) {
+  try {
+    const response = await axiosInstance.put(`${endpoint}`, data,{
+      headers:{
+        'Content-Type':'multipart/form-data'
+      }
+    });
+    return response.data;
+  } catch (error:any) {
+    alert(error.message);
+  }
+  
 }
