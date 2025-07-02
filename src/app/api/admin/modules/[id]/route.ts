@@ -133,7 +133,7 @@ export async function PUT(
     const formattedName = existingModule.name.toLowerCase().replace(/\s+/g, "_");
 
     // 5. Process Each Tier Conditionally
-  for (const tier of ["basic", "plus", "premium"] as const) {
+for (const tier of ["basic", "plus", "premium"] as const) {
   const zipFile = formData.get(`${tier}_zipFile`)
   const existingTier = existingModule.tiers.find(t => t.tier === tier)
   let zipFileUrl = existingTier?.zipFileUrl ?? null
@@ -160,26 +160,33 @@ export async function PUT(
       conclusionId: formData.get(`${tier}_conclutionProductionId`) as string,
     }
 
-    const operation = existingTier
-      ? prisma.moduleTier.update({
-          where: { id: existingTier.id },
-          data: tierData
-        })
-      : prisma.moduleTier.create({
-          data: {
-            moduleId: id,
-            tier,
-            ...tierData
-          }
-        })
+    // Only update if tier exists
+    if (existingTier) {
+      const resultTier = await prisma.moduleTier.update({
+        where: { id: existingTier.id },
+        data: tierData
+      })
+      updatedTiers.push(resultTier)
+    }
 
-    const resultTier = await operation
-    updatedTiers.push(resultTier)
+    // Only create tier if zip file is uploaded and tier doesn't exist
+    else if (zipFile && typeof zipFile === "object" && "arrayBuffer" in zipFile) {
+      const newTier = await prisma.moduleTier.create({
+        data: {
+          moduleId: id,
+          tier,
+          ...tierData
+        }
+      })
+      updatedTiers.push(newTier)
+    }
 
+    // If tier doesn't exist and no file was uploaded → skip
   } catch (error) {
     console.error(`Error processing ${tier} tier:`, error)
   }
 }
+
 
 
     // 6. Return Final Response

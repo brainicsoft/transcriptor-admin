@@ -246,6 +246,7 @@ export default function EditModal({ isOpen, onClose, initialData }: EditModalPro
       <div className="mb-4">
         <input
           type="text"
+          disabled
           placeholder="RevenueCat Entitlement"
           value={formData[tier]?.entitlement || ''}
           onChange={(e) => setFormData(prev => ({
@@ -255,7 +256,7 @@ export default function EditModal({ isOpen, onClose, initialData }: EditModalPro
               entitlement: e.target.value
             }
           }))}
-          className="w-full px-3 py-2 border border-gray-300 rounded text-sm"
+          className="w-full px-3 py-2 border bg-gray-100 border-gray-300 rounded text-sm"
         />
       </div>
 
