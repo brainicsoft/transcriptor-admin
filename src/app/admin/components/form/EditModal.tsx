@@ -4,7 +4,6 @@
 import { useState, useEffect, useCallback } from "react"
 import { Upload, X, File } from "lucide-react"
 import { putData } from "@/app/axios/fetching"
-import { useRouter } from "next/navigation"
 
 interface ModuleTier {
   file?: File | null
@@ -24,12 +23,12 @@ interface ModuleData {
 interface EditModalProps {
   isOpen: boolean
   onClose: () => void
-  initialData: ModuleData
+  initialData: ModuleData,
+  setRefresh:any
 }
 
-export default function EditModal({ isOpen, onClose, initialData }: EditModalProps) {
+export default function EditModal({ isOpen, onClose,setRefresh, initialData }: EditModalProps) {
   const [saving, setSaving] = useState(false)
-      const router = useRouter()
 
   const [formData, setFormData] = useState<ModuleData>({
     name: '',
@@ -176,7 +175,7 @@ export default function EditModal({ isOpen, onClose, initialData }: EditModalPro
       // await onSave(formDataObj)
       await putData(`/admin/modules/${initialData.id}`, formDataObj)
       setSaving(false)
-      router.refresh()
+     setRefresh(Math.random())
       onClose()
     } catch (error) {
       console.error("Error saving module:", error)

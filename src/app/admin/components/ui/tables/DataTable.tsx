@@ -38,6 +38,7 @@ type DataTableProps<T> = {
   onRowSelect?: (selectedItems: T[]) => void
   rowActions?: (row: T) => React.ReactNode
   title?: string
+  setRefresh?:any
 }
 
 export function DataTable<T extends { id: number | string }>({
@@ -52,6 +53,7 @@ export function DataTable<T extends { id: number | string }>({
   setSortDirection,
   isLoading,
   meta,
+  setRefresh,
   onAdd,
   onEdit,
   onDelete,
@@ -269,6 +271,7 @@ export function DataTable<T extends { id: number | string }>({
         isOpen={isEditModalOpen}
         onClose={() => setIsEditModalOpen(false)}
         initialData={currentModule}
+        setRefresh={setRefresh}
       />
     </div>
   )

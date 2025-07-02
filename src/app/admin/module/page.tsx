@@ -273,6 +273,8 @@ const [refresh,setRefresh] = useState(Math.random())
         onDelete={handleDeleteModule}
         sortField={sortField}
         isLoading={isLoading}
+        setRefresh={setRefresh}
+
       />
       <DynamicModal
         isOpen={modalConfig.isOpen}
