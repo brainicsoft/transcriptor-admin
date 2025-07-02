@@ -2,7 +2,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 "use client"
 import { useState, useMemo } from "react"
-import { Search,  Plus, ChevronDown, ChevronUp, Trash2, Edit } from "lucide-react"
+import { Search,  Plus, ChevronDown, ChevronUp, Trash2, Edit, File } from "lucide-react"
 
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -10,7 +10,15 @@ import { Checkbox } from "@/components/ui/checkbox"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Pagination } from "../../Pagination"
 import EditModal from "../../form/EditModal"
-
+import DynamicModal from "../../form/DynamicModal"
+interface FieldConfig {
+  name: string;
+  label: string;
+  type: 'text' | 'email' | 'password' | 'select' | 'number' | 'date' | 'file';
+  required?: boolean;
+  options?: { value: string; label: string }[];
+  disabled?: boolean;
+}
 
 type DataTableProps<T> = {
   data: T[]
@@ -122,12 +130,111 @@ export function DataTable<T extends { id: number | string }>({
     premium: { entitlement: '', text: '' }
   });
 
-  const handleEditClick = (module:any) => {
+  const handleTireUpdate = (module:any) => {
     setCurrentModule(module);
     setIsEditModalOpen(true);
   };
+//  for closed and open modal
+  const [modalConfig, setModalConfig] = useState({
+    isOpen: false,
+    title: '',
+    fields: [] as FieldConfig[],
+    endpoint: '',
+    method: 'GET' as 'POST' | 'PATCH' | 'PUT' | 'GET',
+    buttonText: '',
+    initialData: {} as any,
+    type: 'multipart' as 'multipart' | 'json'
+  });
+
+  const moduleFields: FieldConfig[] = [
+  {
+    name: 'name',
+    label: 'Module Name',
+    type: 'text',
+    required: true
+  },
+  {
+    name: 'description',
+    label: 'Description',
+    type: 'text',
+    required: false
+  },
+  // {
+  //   name: 'basic_hasTextProduction',
+  //   label: 'Has Text Production',
+  //   type: 'select',
+  //   required: true,
+  //   options: [
+  //     { value: 'true', label: 'Yes' },
+  //     { value: 'false', label: 'No' }
+  //   ]
+  // },
+  //   {
+  //   name: 'basic_hasConclusion',
+  //   label: 'Basic Conclution',
+  //   type: 'select',
+  //   required: true,
+  //   options: [
+  //     { value: 'true', label: 'Yes' },
+  //     { value: 'false', label: 'No' }
+  //   ]
+  // },
+  //     {
+  //   name: 'basic_hasMap',
+  //   label: 'Basic Hashmap',
+  //   type: 'select',
+  //   required: true,
+  //   options: [
+  //     { value: 'true', label: 'Yes' },
+  //     { value: 'false', label: 'No' }
+  //   ]
+  // }
+];
+
+  const handleEditModule = (module: any) => {
+    openModal({
+      title: 'Edit Module',
+      fields: moduleFields,
+      endpoint: `/api/admin/modules/${module.id}`,
+      method: 'PUT',
+      buttonText: 'Update Module',
+      initialData: {
+        name: module.name,
+        description: module.description,
+        status: module.status
+      },
+      type: 'multipart'
+    });
+  }
 
  
+    const openModal = (config: {
+    title: string;
+    fields: FieldConfig[];
+    endpoint: string;
+    method: 'POST' | 'PATCH' | 'PUT' | 'GET';
+    buttonText: string;
+    initialData?: any;
+    type?: 'multipart' | 'json'
+  }) => {
+    setModalConfig({
+      ...config,
+      isOpen: true,
+      initialData: config.initialData || {},
+      type: config.type || 'multipart'
+    });
+  };
+
+  const closeModal = () => {
+    setModalConfig(prev => ({ ...prev, isOpen: false }));
+  };
+
+  const handleModalSuccess = () => {
+    closeModal();
+    setRefresh(Math.random());
+  };
+
+
 
   return (
     <div className="w-full bg-gray-50 min-h-screen p-6">
@@ -231,8 +338,13 @@ export function DataTable<T extends { id: number | string }>({
                           ) : (
                             <>
                               {onEdit && (
-                                <Button variant="ghost" size="sm" onClick={() => handleEditClick(item)}>
-                                  <Edit className="w-4 h-4 text-gray-400 hover:text-gray-600" />
+                                <Button variant="ghost" size="sm" onClick={() => handleTireUpdate(item)}>
+                                  <File className="w-4 h-4 text-gray-400 hover:text-gray-600" />
+                                </Button>
+                              )}
+                               {onEdit && (
+                                <Button variant="ghost" size="sm" onClick={() => handleEditModule(item)}>
+                                  <Edit  className="w-4 h-4 text-gray-400 hover:text-gray-600" />
                                 </Button>
                               )}
                               {onDelete && (
@@ -267,6 +379,24 @@ export function DataTable<T extends { id: number | string }>({
                   />
         </div>
       </div>
+
+      {/*  for update basic information with Icons */}
+
+      <DynamicModal
+              isOpen={modalConfig.isOpen}
+        onClose={closeModal}
+        title={modalConfig.title}
+        fields={modalConfig.fields}
+        endpoint={modalConfig.endpoint}
+        method={modalConfig.method}
+        buttonText={modalConfig.buttonText}
+        initialData={modalConfig.initialData}
+        onSuccess={handleModalSuccess}
+        type={modalConfig.type}
+      
+      />
+
+      {/*  for update Files */}
             <EditModal
         isOpen={isEditModalOpen}
         onClose={() => setIsEditModalOpen(false)}
