@@ -9,6 +9,7 @@ import { Input } from "@/components/ui/input"
 import { Checkbox } from "@/components/ui/checkbox"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Pagination } from "../../Pagination"
+import EditModal from "../../form/EditModal"
 
 
 type DataTableProps<T> = {
@@ -107,6 +108,48 @@ export function DataTable<T extends { id: number | string }>({
       <ChevronDown className="w-4 h-4 text-gray-600" />
     )
   }
+
+  //  for Edit
+
+    const [isEditModalOpen, setIsEditModalOpen] = useState(true);
+  const [currentModule, setCurrentModule] = useState<any>({
+    name: '',
+    description: '',
+    basic: { entitlement: '', text: '' },
+    plus: { entitlement: '', text: '' },
+    premium: { entitlement: '', text: '' }
+  });
+  const [isSaving, setIsSaving] = useState(false);
+
+  const handleEditClick = (module:any) => {
+    setCurrentModule(module);
+    setIsEditModalOpen(true);
+  };
+
+  const handleSave = async (data: any) => {
+    setIsSaving(true);
+    try {
+      // Call your API to save the data
+      const response = await fetch('/api/modules', {
+        method: data.id ? 'PUT' : 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(data),
+      });
+      
+      if (!response.ok) {
+        throw new Error('Failed to save module');
+      }
+      
+      // Handle successful save
+    } catch (error) {
+      console.error('Error saving module:', error);
+      throw error;
+    } finally {
+      setIsSaving(false);
+    }
+  };
 
   return (
     <div className="w-full bg-gray-50 min-h-screen p-6">
@@ -210,7 +253,7 @@ export function DataTable<T extends { id: number | string }>({
                           ) : (
                             <>
                               {onEdit && (
-                                <Button variant="ghost" size="sm" onClick={() => onEdit(item)}>
+                                <Button variant="ghost" size="sm" onClick={() => handleEditClick(item)}>
                                   <Edit className="w-4 h-4 text-gray-400 hover:text-gray-600" />
                                 </Button>
                               )}
@@ -246,6 +289,13 @@ export function DataTable<T extends { id: number | string }>({
                   />
         </div>
       </div>
+            <EditModal
+        isOpen={isEditModalOpen}
+        onClose={() => setIsEditModalOpen(false)}
+        initialData={currentModule}
+        onSave={handleSave}
+        isLoading={isSaving}
+      />
     </div>
   )
 }
