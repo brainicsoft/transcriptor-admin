@@ -21,12 +21,7 @@ export function Pagination({
 }: PaginationProps) {
   const startItem = (currentPage - 1) * itemsPerPage + 1;
   const endItem = Math.min(currentPage * itemsPerPage, totalItems);
-console.table([
-  currentPage,
-  totalPages,
-  totalItems,
-  itemsPerPage,
-  isLoading])
+
   return (
     <div className="flex items-center justify-between p-4 border-t">
       <div className="text-sm text-gray-600">

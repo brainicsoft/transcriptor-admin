@@ -1,8 +1,8 @@
+/* eslint-disable @next/next/no-assign-module-variable */
 import { type NextRequest, NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
 import { getUserFromRequest } from "@/lib/auth";
-import { updateModuleSchema } from "@/lib/validations/module";
-import { uploadModuleIcon, uploadModuleZip } from "@/lib/utils/file-upload";
+import { uploadModuleZip } from "@/lib/utils/file-upload";
 
 // GET /api/admin/modules/[id] - Get a specific module (admin only)
 export async function GET(
@@ -133,60 +133,54 @@ export async function PUT(
     const formattedName = existingModule.name.toLowerCase().replace(/\s+/g, "_");
 
     // 5. Process Each Tier Conditionally
-    for (const tier of ["basic", "plus", "premium"] as const) {
-      const zipFile = formData.get(`${tier}_zipFile`);
-      
-      // Skip if no file provided for this tier
-      if (!zipFile || typeof zipFile !== "object" || !("arrayBuffer" in zipFile)) {
-        continue;
-      }
+  for (const tier of ["basic", "plus", "premium"] as const) {
+  const zipFile = formData.get(`${tier}_zipFile`)
+  const existingTier = existingModule.tiers.find(t => t.tier === tier)
+  let zipFileUrl = existingTier?.zipFileUrl ?? null
 
-      try {
-        // Upload new zip file
-        const zipFileUrl = await uploadModuleZip(zipFile, id, tier);
-
-        // Prepare tier data
-        const tierData = {
-          productId: `module_${formattedName}_${tier}`,
-          entitlementId: `entitlement_${formattedName}_${tier}`,
-          webviewUrl: `${process.env.WEBVIEW_URL}?module=${id}&tier=${tier}`,
-          zipFileUrl,
-          hasTextProduction: formData.get(`${tier}_hasTextProduction`) === "true",
-          hasConclusion: formData.get(`${tier}_hasConclusion`) === "true",
-          hasMap: formData.get(`${tier}_hasMap`) === "true",
-          textProductionLimit: Number(formData.get(`${tier}_textLimit`) || 50),
-          mapLimit: Number(formData.get(`${tier}_mapLimit`) || 0),
-          conclusionLimit: Number(formData.get(`${tier}_conclutionLimit`) || 0),
-          textProductionId: formData.get(`${tier}_textProductionId`) as string,
-          mapId: formData.get(`${tier}_mapProductionId`) as string,
-          conclusionId: formData.get(`${tier}_conclutionProductionId`) as string,
-        };
-
-        // Find existing tier
-        const existingTier = existingModule.tiers.find(t => t.tier === tier);
-
-        // Update or create tier
-        const operation = existingTier
-          ? prisma.moduleTier.update({
-              where: { id: existingTier.id },
-              data: tierData
-            })
-          : prisma.moduleTier.create({
-              data: {
-                moduleId: id,
-                tier,
-                ...tierData
-              }
-            });
-
-        const resultTier = await operation;
-        updatedTiers.push(resultTier);
-
-      } catch (error) {
-        console.error(`Error processing ${tier} tier:`, error);
-        // Continue with other tiers even if one fails
-      }
+  try {
+    // Upload new zip if available
+    if (zipFile && typeof zipFile === "object" && "arrayBuffer" in zipFile) {
+      zipFileUrl = await uploadModuleZip(zipFile, id, tier)
     }
+
+    const tierData = {
+      productId: `module_${formattedName}_${tier}`,
+      entitlementId: `entitlement_${formattedName}_${tier}`,
+      webviewUrl: `${process.env.WEBVIEW_URL}?module=${id}&tier=${tier}`,
+      zipFileUrl,
+      hasTextProduction: formData.get(`${tier}_hasTextProduction`) === "true",
+      hasConclusion: formData.get(`${tier}_hasConclusion`) === "true",
+      hasMap: formData.get(`${tier}_hasMap`) === "true",
+      textProductionLimit: Number(formData.get(`${tier}_textLimit`) || 50),
+      mapLimit: Number(formData.get(`${tier}_mapLimit`) || 0),
+      conclusionLimit: Number(formData.get(`${tier}_conclutionLimit`) || 0),
+      textProductionId: formData.get(`${tier}_textProductionId`) as string,
+      mapId: formData.get(`${tier}_mapProductionId`) as string,
+      conclusionId: formData.get(`${tier}_conclutionProductionId`) as string,
+    }
+
+    const operation = existingTier
+      ? prisma.moduleTier.update({
+          where: { id: existingTier.id },
+          data: tierData
+        })
+      : prisma.moduleTier.create({
+          data: {
+            moduleId: id,
+            tier,
+            ...tierData
+          }
+        })
+
+    const resultTier = await operation
+    updatedTiers.push(resultTier)
+
+  } catch (error) {
+    console.error(`Error processing ${tier} tier:`, error)
+  }
+}
+
 
     // 6. Return Final Response
     const completeModule = await prisma.module.findUnique({

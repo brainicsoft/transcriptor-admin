@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 "use client"
 
 import { useState, useEffect, useCallback } from "react"
@@ -42,6 +43,8 @@ export default function EditModal({ isOpen, onClose, initialData }: EditModalPro
   const [errors, setErrors] = useState<Record<string, string>>({})
   const [dragActive, setDragActive] = useState(false)
 
+  
+
   useEffect(() => {
     if (isOpen) {
       setFormData({
@@ -55,6 +58,36 @@ export default function EditModal({ isOpen, onClose, initialData }: EditModalPro
       setErrors({})
     }
   }, [isOpen, initialData])
+
+    useEffect(() => {
+  if (!isOpen || !initialData) return;
+
+  const getTierData = (tierName: "basic" | "plus" | "premium") => {
+    const tier = (initialData as any).tiers?.find((t: any) => t.tier === tierName)
+    const selectedTexts: string[] = []
+
+    if (tier?.hasTextProduction) selectedTexts.push("Text Production")
+    if (tier?.hasConclusion) selectedTexts.push("Conclusion")
+    if (tier?.hasMap) selectedTexts.push("Map")
+
+    return {
+      file: null, // can't load real file object from URL, handled visually
+      entitlement: tier?.entitlementId || '',
+      selectedTexts
+    }
+  }
+
+  setFormData({
+    id: initialData.id,
+    name: initialData.name,
+    description: initialData.description,
+    basic: getTierData("basic"),
+    plus: getTierData("plus"),
+    premium: getTierData("premium")
+  })
+
+  setErrors({})
+}, [isOpen, initialData])
 
   const handleDrag = useCallback((e: React.DragEvent) => {
     e.preventDefault()
@@ -109,6 +142,7 @@ export default function EditModal({ isOpen, onClose, initialData }: EditModalPro
       }
     })
   }
+    console.log(initialData)
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -116,13 +150,17 @@ export default function EditModal({ isOpen, onClose, initialData }: EditModalPro
     // Convert to FormData
     const formDataObj = new FormData()
 
-    // Log the data before sending
-    console.log("Form data to be sent:", {
-      basic_file: formData.basic?.file,
-      plus_file: formData.plus?.file,
-      premium_file: formData.premium?.file
-    })
 
+  
+  const appendTextBooleans = (tier: "basic" | "plus" | "premium") => {
+    const texts = formData[tier].selectedTexts
+    formDataObj.append(`${tier}_hasTextProduction`, texts.includes("Text Production").toString())
+    formDataObj.append(`${tier}_hasConclusion`, texts.includes("Conclusion").toString())
+    formDataObj.append(`${tier}_hasMap`, texts.includes("Map").toString())
+  }
+   appendTextBooleans("basic")
+  appendTextBooleans("plus")
+  appendTextBooleans("premium")
     // Add files if they exist
     if (formData.basic?.file) {
       formDataObj.append("basic_zipFile", formData.basic.file)
@@ -233,13 +271,15 @@ export default function EditModal({ isOpen, onClose, initialData }: EditModalPro
               className={`w-full px-3 py-2 rounded text-sm border ${isSelected ? "bg-blue-50 border-blue-300 text-blue-700" : "bg-gray-50 border-gray-200 text-gray-600"
                 }`}
             >
-              {text}
+              {text} 
             </button>
           )
         })}
       </div>
     </div>
   )
+
+
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
