@@ -2,7 +2,7 @@
 import { type NextRequest, NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
 import { getUserFromRequest } from "@/lib/auth";
-import { uploadModuleZip } from "@/lib/utils/file-upload";
+import { uploadModuleIcon, uploadModuleZip } from "@/lib/utils/file-upload";
 
 // GET /api/admin/modules/[id] - Get a specific module (admin only)
 export async function GET(
@@ -83,7 +83,6 @@ export async function GET(
   }
 }
 
-
 export async function PUT(
   req: NextRequest,
   { params }: { params: { id: string } }
@@ -130,64 +129,101 @@ export async function PUT(
     // 4. Process Form Data
     const formData = await req.formData();
     const updatedTiers = [];
-    const formattedName = existingModule.name.toLowerCase().replace(/\s+/g, "_");
+    const formattedName = existingModule.name
+      .toLowerCase()
+      .replace(/\s+/g, "_");
 
+    const iconFile = formData.get("iconUrl");
+    const isIconFileValid =
+      iconFile && typeof iconFile === "object" && "arrayBuffer" in iconFile;
+    let iconUrl = null;
+
+          if (isIconFileValid) {
+            try {
+              // Use direct function call instead of fetch
+              const icon = await uploadModuleIcon(iconFile, id);
+              console.log(icon)
+              iconUrl = `${process.env.API_BASE_URL}/api/upload?module=${id}&file=${icon}`;
+              await prisma.module.update({
+                where: {
+                  id: id,
+                },
+                data: {
+                  iconUrl,
+                },
+              });
+            } catch (uploadError) {
+              console.error(
+                `Error uploading icon file for ${name} module:`,
+                uploadError
+              );
+            }
+          }
     // 5. Process Each Tier Conditionally
-for (const tier of ["basic", "plus", "premium"] as const) {
-  const zipFile = formData.get(`${tier}_zipFile`)
-  const existingTier = existingModule.tiers.find(t => t.tier === tier)
-  let zipFileUrl = existingTier?.zipFileUrl ?? null
+    for (const tier of ["basic", "plus", "premium"] as const) {
+      const zipFile = formData.get(`${tier}_zipFile`);
+      const existingTier = existingModule.tiers.find((t) => t.tier === tier);
+      let zipFileUrl = existingTier?.zipFileUrl ?? null;
 
-  try {
-    // Upload new zip if available
-    if (zipFile && typeof zipFile === "object" && "arrayBuffer" in zipFile) {
-      zipFileUrl = await uploadModuleZip(zipFile, id, tier)
-    }
-
-    const tierData = {
-      productId: `module_${formattedName}_${tier}`,
-      entitlementId: `entitlement_${formattedName}_${tier}`,
-      webviewUrl: `${process.env.WEBVIEW_URL}?module=${id}&tier=${tier}`,
-      zipFileUrl,
-      hasTextProduction: formData.get(`${tier}_hasTextProduction`) === "true",
-      hasConclusion: formData.get(`${tier}_hasConclusion`) === "true",
-      hasMap: formData.get(`${tier}_hasMap`) === "true",
-      textProductionLimit: Number(formData.get(`${tier}_textLimit`) || 50),
-      mapLimit: Number(formData.get(`${tier}_mapLimit`) || 0),
-      conclusionLimit: Number(formData.get(`${tier}_conclutionLimit`) || 0),
-      textProductionId: formData.get(`${tier}_textProductionId`) as string,
-      mapId: formData.get(`${tier}_mapProductionId`) as string,
-      conclusionId: formData.get(`${tier}_conclutionProductionId`) as string,
-    }
-
-    // Only update if tier exists
-    if (existingTier) {
-      const resultTier = await prisma.moduleTier.update({
-        where: { id: existingTier.id },
-        data: tierData
-      })
-      updatedTiers.push(resultTier)
-    }
-
-    // Only create tier if zip file is uploaded and tier doesn't exist
-    else if (zipFile && typeof zipFile === "object" && "arrayBuffer" in zipFile) {
-      const newTier = await prisma.moduleTier.create({
-        data: {
-          moduleId: id,
-          tier,
-          ...tierData
+      try {
+        // Upload new zip if available
+        if (
+          zipFile &&
+          typeof zipFile === "object" &&
+          "arrayBuffer" in zipFile
+        ) {
+          zipFileUrl = await uploadModuleZip(zipFile, id, tier);
         }
-      })
-      updatedTiers.push(newTier)
+
+        const tierData = {
+          productId: `module_${formattedName}_${tier}`,
+          entitlementId: `entitlement_${formattedName}_${tier}`,
+          webviewUrl: `${process.env.WEBVIEW_URL}?module=${id}&tier=${tier}`,
+          zipFileUrl,
+          hasTextProduction:
+            formData.get(`${tier}_hasTextProduction`) === "true",
+          hasConclusion: formData.get(`${tier}_hasConclusion`) === "true",
+          hasMap: formData.get(`${tier}_hasMap`) === "true",
+          textProductionLimit: Number(formData.get(`${tier}_textLimit`) || 50),
+          mapLimit: Number(formData.get(`${tier}_mapLimit`) || 0),
+          conclusionLimit: Number(formData.get(`${tier}_conclutionLimit`) || 0),
+          textProductionId: formData.get(`${tier}_textProductionId`) as string,
+          mapId: formData.get(`${tier}_mapProductionId`) as string,
+          conclusionId: formData.get(
+            `${tier}_conclutionProductionId`
+          ) as string,
+        };
+
+        // Only update if tier exists
+        if (existingTier) {
+          const resultTier = await prisma.moduleTier.update({
+            where: { id: existingTier.id },
+            data: tierData,
+          });
+          updatedTiers.push(resultTier);
+        }
+
+        // Only create tier if zip file is uploaded and tier doesn't exist
+        else if (
+          zipFile &&
+          typeof zipFile === "object" &&
+          "arrayBuffer" in zipFile
+        ) {
+          const newTier = await prisma.moduleTier.create({
+            data: {
+              moduleId: id,
+              tier,
+              ...tierData,
+            },
+          });
+          updatedTiers.push(newTier);
+        }
+
+        // If tier doesn't exist and no file was uploaded → skip
+      } catch (error) {
+        console.error(`Error processing ${tier} tier:`, error);
+      }
     }
-
-    // If tier doesn't exist and no file was uploaded → skip
-  } catch (error) {
-    console.error(`Error processing ${tier} tier:`, error)
-  }
-}
-
-
 
     // 6. Return Final Response
     const completeModule = await prisma.module.findUnique({
@@ -197,20 +233,20 @@ for (const tier of ["basic", "plus", "premium"] as const) {
 
     return NextResponse.json({
       success: true,
-      message: updatedTiers.length > 0
-        ? "Module updated successfully"
-        : "No tier files provided for update",
+      message:
+        updatedTiers.length > 0
+          ? "Module updated successfully"
+          : "No tier files provided for update",
       module: completeModule,
-      updatedTiers: updatedTiers.length > 0 ? updatedTiers : undefined
+      updatedTiers: updatedTiers.length > 0 ? updatedTiers : undefined,
     });
-
   } catch (error) {
     console.error("Error updating module:", error);
     return NextResponse.json(
       {
         success: false,
         message: "An error occurred while updating the module",
-        error: error instanceof Error ? error.message : "Unknown error"
+        error: error instanceof Error ? error.message : "Unknown error",
       },
       { status: 500 }
     );

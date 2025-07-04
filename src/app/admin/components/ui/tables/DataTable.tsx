@@ -159,36 +159,23 @@ export function DataTable<T extends { id: number | string }>({
     type: 'text',
     required: false
   },
-  // {
-  //   name: 'basic_hasTextProduction',
-  //   label: 'Has Text Production',
-  //   type: 'select',
-  //   required: true,
-  //   options: [
-  //     { value: 'true', label: 'Yes' },
-  //     { value: 'false', label: 'No' }
-  //   ]
-  // },
-  //   {
-  //   name: 'basic_hasConclusion',
-  //   label: 'Basic Conclution',
-  //   type: 'select',
-  //   required: true,
-  //   options: [
-  //     { value: 'true', label: 'Yes' },
-  //     { value: 'false', label: 'No' }
-  //   ]
-  // },
-  //     {
-  //   name: 'basic_hasMap',
-  //   label: 'Basic Hashmap',
-  //   type: 'select',
-  //   required: true,
-  //   options: [
-  //     { value: 'true', label: 'Yes' },
-  //     { value: 'false', label: 'No' }
-  //   ]
-  // }
+  {
+    name: 'status',
+    label: 'Status',
+    type: 'select',
+    required: true,
+    options: [
+      { value: 'active', label: 'active' },
+      { value: 'hold', label: 'hold' },
+      { value: 'deleted', label: 'deleted' }
+    ]
+  },
+    {
+    name: 'iconUrl',
+    label: 'Icon URL',
+    type: 'file',
+    required: false
+  },
 ];
 
   const handleEditModule = (module: any) => {
@@ -201,7 +188,8 @@ export function DataTable<T extends { id: number | string }>({
       initialData: {
         name: module.name,
         description: module.description,
-        status: module.status
+        status: module.status,
+        iconUrl: module?.iconUrl
       },
       type: 'multipart'
     });

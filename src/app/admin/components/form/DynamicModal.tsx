@@ -62,7 +62,12 @@ export default function DynamicModal({
       if (files && files.length > 0) {
         setFileData(prev => ({
           ...prev,
-          [name]: files[0]
+          [name]: files[0] // Store the File object
+        }));
+        // Update formData with file name for UI display
+        setFormData(prev => ({
+          ...prev,
+          [name]: files[0].name
         }));
       }
     } else {
@@ -77,42 +82,31 @@ export default function DynamicModal({
     if (type === 'multipart') {
       const formDataObj = new FormData();
       
-      // Add all form fields to FormData
-      fields.forEach(field => {
-        const value = formData[field.name];
-        
-        // Skip if value is undefined or null
-        if (value === undefined || value === null) return;
-        
-        // Handle different field types
+      // Add all fields to FormData
+      for (const field of fields) {
         if (field.type === 'file') {
-          // File was already captured in fileData state
+          // Handle file fields
           if (fileData[field.name]) {
             formDataObj.append(field.name, fileData[field.name]);
           }
-        } else if (field.type === 'select' && Array.isArray(value)) {
-          // Handle multi-select arrays
-          value.forEach((item: string) => formDataObj.append(field.name, item));
         } else {
-          // Convert all other values to string and add to FormData
-          formDataObj.append(field.name, String(value));
+          // Handle regular fields
+          const value = formData[field.name];
+          if (value !== undefined && value !== null) {
+            formDataObj.append(field.name, String(value));
+          }
         }
+      }
+
+      // Debug: Log FormData entries
+      Array.from(formDataObj.entries()).forEach(([key, value]) => {
+        console.log(key, value);
       });
 
       return formDataObj;
     } else {
-      // For JSON, transform the data as needed
-      const transformedData = { ...formData };
-
-      // Handle special transformations
-      if (typeof transformedData.deviceIds === 'string') {
-        transformedData.deviceIds = transformedData.deviceIds
-          .split(',')
-          .map((id: string) => Number(id.replace(/\s+/g, '')))
-          .filter((id: number) => !isNaN(id));
-      }
-
-      return JSON.stringify(transformedData);
+      // For JSON requests
+      return JSON.stringify(formData);
     }
   };
 
@@ -121,6 +115,7 @@ export default function DynamicModal({
     setIsLoading(true);
     setFormError(null);
 
+    // Validate form if validation function provided
     if (validate) {
       const validationErrors = validate(formData);
       if (validationErrors) {
@@ -134,15 +129,16 @@ export default function DynamicModal({
       const body = prepareFormData();
       
       const headers = new Headers();
+      // Only set Content-Type for JSON, not for FormData
       if (type === 'json') {
         headers.append('Content-Type', 'application/json');
-        
       }
+      
+      // Add authorization token if available
       const token = localStorage.getItem('token');
-if (token) {
-  headers.append('Authorization', `Bearer ${token}`);
-}
-      // For multipart, the browser will automatically set the Content-Type with boundary
+      if (token) {
+        headers.append('Authorization', `Bearer ${token}`);
+      }
 
       const response = await fetch(endpoint, {
         method,
@@ -153,7 +149,7 @@ if (token) {
 
       if (!response.ok) {
         const errorData = await response.json();
-        throw new Error(errorData.error || 'Failed to submit form');
+        throw new Error(errorData.message || errorData.error || 'Failed to submit form');
       }
 
       const data = await response.json();
@@ -190,7 +186,7 @@ if (token) {
           </button>
         </div>
 
-        <form onSubmit={handleSubmit} className="space-y-4" encType={type === 'multipart' ? 'multipart/form-data' : undefined}>
+        <form onSubmit={handleSubmit} className="space-y-4">
           {fields.map((field) => (
             <div key={field.name}>
               <label className="block text-sm font-medium text-gray-700 mb-1">
@@ -222,8 +218,10 @@ if (token) {
                     disabled={field.disabled || isLoading}
                     className="w-full px-3 py-2 border border-gray-300 rounded"
                   />
-                  {fileData[field.name]?.name && (
-                    <p className="text-sm text-gray-500 mt-1">Selected: {fileData[field.name].name}</p>
+                  {formData[field.name] && (
+                    <p className="text-sm text-gray-500 mt-1">
+                      Selected: {formData[field.name]}
+                    </p>
                   )}
                 </div>
               ) : (
