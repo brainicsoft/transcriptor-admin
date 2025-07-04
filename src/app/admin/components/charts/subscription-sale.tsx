@@ -3,7 +3,12 @@
 import { useEffect, useRef } from "react"
 import Highcharts from "highcharts"
 
-export default function SubscriptionSalesChart() {
+interface SubscriptionSalesChartProps {
+  monthly: number
+  yearly: number
+}
+
+export default function SubscriptionSalesChart({ monthly, yearly }: SubscriptionSalesChartProps) {
   const chartRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
@@ -48,12 +53,12 @@ export default function SubscriptionSalesChart() {
             data: [
               {
                 name: "Monthly",
-                y: 251,
+                y: monthly,
                 color: "#4F46E5",
               },
               {
                 name: "Yearly",
-                y: 176,
+                y: yearly,
                 color: "#06B6D4",
               },
             ],
@@ -61,7 +66,7 @@ export default function SubscriptionSalesChart() {
         ],
       })
     }
-  }, [])
+  }, [monthly, yearly])
 
   return (
     <div className="flex items-center justify-between">
@@ -71,14 +76,14 @@ export default function SubscriptionSalesChart() {
           <div className="w-3 h-3 rounded-full bg-[#4F46E5]" />
           <div className="flex flex-col">
             <span className="text-sm text-gray-500">Monthly</span>
-            <span className="text-xl font-semibold text-gray-900">251K</span>
+            <span className="text-xl font-semibold text-gray-900">{monthly}K</span>
           </div>
         </div>
         <div className="flex items-center gap-3">
           <div className="w-3 h-3 rounded-full bg-[#06B6D4]" />
           <div className="flex flex-col">
             <span className="text-sm text-gray-500">Yearly</span>
-            <span className="text-xl font-semibold text-gray-900">176K</span>
+            <span className="text-xl font-semibold text-gray-900">{yearly}K</span>
           </div>
         </div>
       </div>

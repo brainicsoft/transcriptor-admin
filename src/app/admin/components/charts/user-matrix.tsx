@@ -3,7 +3,17 @@
 import { useEffect, useRef } from "react"
 import Highcharts from "highcharts"
 
-export default function UserMatrixChart() {
+interface UserMatrixChartProps {
+  newUsers: number
+  newSubscriptions: number
+  renewSubscriptions: number
+}
+
+export default function UserMatrixChart({ 
+  newUsers, 
+  newSubscriptions, 
+  renewSubscriptions 
+}: UserMatrixChartProps) {
   const chartRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
@@ -23,7 +33,7 @@ export default function UserMatrixChart() {
         },
         tooltip: {
           formatter: function() {
-            return `<b>${this.name}</b>: ${this.y}K`
+            return `<b>${this.name}</b>: ${this.y}`
           },
           style: {
             fontSize: '12px'
@@ -66,17 +76,17 @@ export default function UserMatrixChart() {
             data: [
               {
                 name: "New Users",
-                y: 251,
+                y: newUsers,
                 color: "#4F46E5",
               },
               {
                 name: "New Subscriptions",
-                y: 176,
+                y: newSubscriptions,
                 color: "#06B6D4",
               },
               {
                 name: "Re-New Subscriptions",
-                y: 176,
+                y: renewSubscriptions,
                 color: "#10B981",
               },
             ],
@@ -84,7 +94,7 @@ export default function UserMatrixChart() {
         ],
       })
     }
-  }, [])
+  }, [newUsers, newSubscriptions, renewSubscriptions])
 
   return (
     <div className="flex items-center justify-between">
@@ -94,21 +104,21 @@ export default function UserMatrixChart() {
           <div className="w-3 h-3 rounded-full bg-[#4F46E5]" />
           <div className="flex flex-col">
             <span className="text-sm text-gray-500">New Users</span>
-            <span className="text-xl font-semibold text-gray-900">251K</span>
+            <span className="text-xl font-semibold text-gray-900">{newUsers}K</span>
           </div>
         </div>
         <div className="flex items-center gap-3">
           <div className="w-3 h-3 rounded-full bg-[#06B6D4]" />
           <div className="flex flex-col">
             <span className="text-sm text-gray-500">New Subscriptions</span>
-            <span className="text-xl font-semibold text-gray-900">176K</span>
+            <span className="text-xl font-semibold text-gray-900">{newSubscriptions}K</span>
           </div>
         </div>
         <div className="flex items-center gap-3">
           <div className="w-3 h-3 rounded-full bg-[#10B981]" />
           <div className="flex flex-col">
             <span className="text-sm text-gray-500">Re-New Subscriptions</span>
-            <span className="text-xl font-semibold text-gray-900">176K</span>
+            <span className="text-xl font-semibold text-gray-900">{renewSubscriptions}K</span>
           </div>
         </div>
       </div>
