@@ -134,22 +134,31 @@ export async function PUT(
       .replace(/\s+/g, "_");
 
     const iconFile = formData.get("iconUrl");
+        const name = formData.get("name") as string;
+        const description = formData.get('description') as string;
+        const status = formData.get('status') as string;
     const isIconFileValid =
       iconFile && typeof iconFile === "object" && "arrayBuffer" in iconFile;
     let iconUrl = null;
 
-          if (isIconFileValid) {
-            try {
-              // Use direct function call instead of fetch
+    if(isIconFileValid){
+     // Use direct function call instead of fetch
               const icon = await uploadModuleIcon(iconFile, id);
               console.log(icon)
               iconUrl = `${process.env.API_BASE_URL}/api/upload?module=${id}&file=${icon}`;
+    }
+
+            try {
+             
               await prisma.module.update({
                 where: {
                   id: id,
                 },
                 data: {
                   iconUrl,
+                  name: name,
+                  description: description,
+                  status: status
                 },
               });
             } catch (uploadError) {
@@ -158,7 +167,7 @@ export async function PUT(
                 uploadError
               );
             }
-          }
+          
     // 5. Process Each Tier Conditionally
     for (const tier of ["basic", "plus", "premium"] as const) {
       const zipFile = formData.get(`${tier}_zipFile`);
