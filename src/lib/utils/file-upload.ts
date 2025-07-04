@@ -1,7 +1,7 @@
-import { v4 as uuidv4 } from "uuid"
+import { v4 as uuidv4 } from "uuid";
 import fs from "fs";
-import path from "path"
-import AdmZip from "adm-zip"
+import path from "path";
+import AdmZip from "adm-zip";
 
 /**
  * Upload a file to local storage
@@ -81,10 +81,21 @@ export async function uploadFile(
       const fileName = `${uuidv4()}.${ext}`;
       const filePath = path.join(uploadDir, fileName);
       fs.writeFileSync(filePath, buffer);
-      uploadDir = fileName
+      uploadDir = fileName;
+    }
+    // Determine the file name for the returned URL
+    let returnedFileName: string;
+    if (ext === "html") {
+      returnedFileName = "index.html";
+    } else if (ext === "zip") {
+      // If zip, return the folder path (could be customized as needed)
+      returnedFileName = "";
+    } else {
+      returnedFileName = uploadDir; // uploadDir is set to fileName for non-zip/html
     }
 
-    return uploadDir;
+    console.table([uploadDir, returnedFileName]);
+    return `${process.env.BASE_URL}/${folder}/${returnedFileName}`;
   } catch (error) {
     console.error("Error in uploadFile:", error);
     throw new Error(`File upload failed: ${(error as Error).message}`);
@@ -106,7 +117,6 @@ export async function uploadModuleZip(
   return uploadFile(file, `modules/${moduleId}/${tier}`);
 }
 
-
 /**
  * Upload a module icon
  * @param file The icon file to upload
@@ -114,13 +124,12 @@ export async function uploadModuleZip(
  * @param tier The tier of the module (basic, plus, premium)
  * @returns The URL of the uploaded file
  */
-export async function uploadModuleIcon(file: Blob, moduleId: string): Promise<string> {
+export async function uploadModuleIcon(
+  file: Blob,
+  moduleId: string
+): Promise<string> {
   return uploadFile(file, `modules/${moduleId}/icon`);
 }
-
-
-
-
 
 // export async function uploadAndUnzipFile(
 //   file: File,
@@ -148,4 +157,3 @@ export async function uploadModuleIcon(file: Blob, moduleId: string): Promise<st
 
 //   return moduleId; // This will be used in step 2
 // }
-
