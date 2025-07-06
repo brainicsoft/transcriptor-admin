@@ -57,7 +57,7 @@ export async function uploadFile(
     const arrayBuffer = await file.arrayBuffer();
     const buffer = Buffer.from(arrayBuffer);
 
-    const publicDir = path.join(process.cwd(), "public");
+    const publicDir = path.join(process.cwd(), "uploads");
     let uploadDir = path.join(publicDir, folder);
 
     // Ensure the folder exists
