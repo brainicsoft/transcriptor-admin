@@ -94,8 +94,7 @@ export async function uploadFile(
       returnedFileName = uploadDir; // uploadDir is set to fileName for non-zip/html
     }
 
-    console.table([uploadDir, returnedFileName]);
-    return `${process.env.BASE_URL}/${folder}/${returnedFileName}`;
+    return `${process.env.BASE_URL}/uploads${folder}/${returnedFileName}`;
   } catch (error) {
     console.error("Error in uploadFile:", error);
     throw new Error(`File upload failed: ${(error as Error).message}`);
