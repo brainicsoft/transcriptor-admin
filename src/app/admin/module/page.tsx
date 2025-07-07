@@ -233,6 +233,7 @@ const [refresh,setRefresh] = useState(Math.random())
   };
 
   const closeModal = () => {
+    setRefresh(Math.random())
     setModalConfig(prev => ({ ...prev, isOpen: false }));
   };
 
