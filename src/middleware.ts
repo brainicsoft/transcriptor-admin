@@ -4,7 +4,7 @@ import { jwtVerify } from "jose"
 import { cookies } from 'next/headers'
 
 // Paths that require authentication
-const authPaths = ["/api/user", "/api/usage"]
+const authPaths = ["/api/user", "/api/usage",'/api/modules']
 
 // Paths that require admin access
 const adminPaths = [
