@@ -6,6 +6,10 @@ import prisma from "@/lib/prisma";
 import { checkUsageInfo } from "@/lib/utils/usage-limit";
 
 export async function GET(req: NextRequest) {
+      const user = getUserFromRequest(req)
+      if (!user) {
+        return NextResponse.json({ success: false, message: "Authentication required" }, { status: 401 })
+      }
   const { searchParams } = new URL(req.url);
   const module = searchParams.get("module");
   const tier = searchParams.get("tier");

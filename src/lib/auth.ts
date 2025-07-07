@@ -9,7 +9,7 @@ const cookieToken = req.cookies.get("token")?.value
 
   
 
-    const token = authHeader.split(" ")[1] || cookieToken
+    const token = authHeader?.split(" ")[1] || cookieToken
     console.log(token,'token ')
     return verifyAccessToken(token)
   } catch (error) {
