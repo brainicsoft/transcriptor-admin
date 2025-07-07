@@ -11,6 +11,15 @@ interface ModuleTier {
   selectedTexts: string[]
 }
 
+interface ModuleTierData {
+  tier: "basic" | "plus" | "premium"
+  entitlementId: string
+  productId: string
+  hasTextProduction: boolean
+  hasConclusion: boolean
+  hasMap: boolean
+}
+
 interface ModuleData {
   id?: string
   name: string
@@ -18,18 +27,18 @@ interface ModuleData {
   basic: ModuleTier
   plus: ModuleTier
   premium: ModuleTier
+  tiers?: ModuleTierData[]
 }
 
 interface EditModalProps {
   isOpen: boolean
   onClose: () => void
-  initialData: ModuleData,
-  setRefresh:any
+  initialData: ModuleData
+  setRefresh: (value: number) => void
 }
 
-export default function EditModal({ isOpen, onClose,setRefresh, initialData }: EditModalProps) {
+export default function EditModal({ isOpen, onClose, setRefresh, initialData }: EditModalProps) {
   const [saving, setSaving] = useState(false)
-
   const [formData, setFormData] = useState<ModuleData>({
     name: '',
     description: '',
@@ -42,51 +51,35 @@ export default function EditModal({ isOpen, onClose,setRefresh, initialData }: E
   const [errors, setErrors] = useState<Record<string, string>>({})
   const [dragActive, setDragActive] = useState(false)
 
-  
-
   useEffect(() => {
-    if (isOpen) {
-      setFormData({
-        name: '',
-        description: '',
-        basic: { entitlement: '', selectedTexts: [] },
-        plus: { entitlement: '', selectedTexts: [] },
-        premium: { entitlement: '', selectedTexts: [] },
-        ...initialData
-      })
-      setErrors({})
+    if (!isOpen || !initialData) return
+
+    const getTierData = (tierName: "basic" | "plus" | "premium") => {
+      const tier = initialData.tiers?.find((t) => t.tier === tierName)
+      const selectedTexts: string[] = []
+
+      if (tier?.hasTextProduction) selectedTexts.push("Text Production")
+      if (tier?.hasConclusion) selectedTexts.push("Conclusion")
+      if (tier?.hasMap) selectedTexts.push("Map")
+
+      return {
+        file: null,
+        entitlement: tier?.entitlementId || '',
+        selectedTexts
+      }
     }
+
+    setFormData({
+      id: initialData.id,
+      name: initialData.name,
+      description: initialData.description,
+      basic: getTierData("basic"),
+      plus: getTierData("plus"),
+      premium: getTierData("premium")
+    })
+
+    setErrors({})
   }, [isOpen, initialData])
-
-    useEffect(() => {
-  if (!isOpen || !initialData) return;
-
-  const getTierData = (tierName: "basic" | "plus" | "premium") => {
-    const tier = (initialData as any).tiers?.find((t: any) => t.tier === tierName)
-    const selectedTexts: string[] = []
-
-    if (tier?.hasTextProduction) selectedTexts.push("Text Production")
-    if (tier?.hasConclusion) selectedTexts.push("Conclusion")
-    if (tier?.hasMap) selectedTexts.push("Map")
-
-    return {
-      file: null, // can't load real file object from URL, handled visually
-      entitlement: tier?.entitlementId || '',
-      selectedTexts
-    }
-  }
-
-  setFormData({
-    id: initialData.id,
-    name: initialData.name,
-    description: initialData.description,
-    basic: getTierData("basic"),
-    plus: getTierData("plus"),
-    premium: getTierData("premium")
-  })
-
-  setErrors({})
-}, [isOpen, initialData])
 
   const handleDrag = useCallback((e: React.DragEvent) => {
     e.preventDefault()
@@ -130,7 +123,9 @@ export default function EditModal({ isOpen, onClose,setRefresh, initialData }: E
       const currentTexts = prev[tier]?.selectedTexts || []
       const isSelected = currentTexts.includes(text)
 
-      const newSelectedTexts = isSelected ? currentTexts.filter((t) => t !== text) : [...currentTexts, text]
+      const newSelectedTexts = isSelected 
+        ? currentTexts.filter((t) => t !== text) 
+        : [...currentTexts, text]
 
       return {
         ...prev,
@@ -141,41 +136,31 @@ export default function EditModal({ isOpen, onClose,setRefresh, initialData }: E
       }
     })
   }
-    console.log(initialData)
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setSaving(true)
-    // Convert to FormData
     const formDataObj = new FormData()
 
+    const appendTextBooleans = (tier: "basic" | "plus" | "premium") => {
+      const texts = formData[tier].selectedTexts
+      formDataObj.append(`${tier}_hasTextProduction`, texts.includes("Text Production").toString())
+      formDataObj.append(`${tier}_hasConclusion`, texts.includes("Conclusion").toString())
+      formDataObj.append(`${tier}_hasMap`, texts.includes("Map").toString())
+    }
 
-  
-  const appendTextBooleans = (tier: "basic" | "plus" | "premium") => {
-    const texts = formData[tier].selectedTexts
-    formDataObj.append(`${tier}_hasTextProduction`, texts.includes("Text Production").toString())
-    formDataObj.append(`${tier}_hasConclusion`, texts.includes("Conclusion").toString())
-    formDataObj.append(`${tier}_hasMap`, texts.includes("Map").toString())
-  }
-   appendTextBooleans("basic")
-  appendTextBooleans("plus")
-  appendTextBooleans("premium")
-    // Add files if they exist
-    if (formData.basic?.file) {
-      formDataObj.append("basic_zipFile", formData.basic.file)
-    }
-    if (formData.plus?.file) {
-      formDataObj.append("plus_zipFile", formData.plus.file)
-    }
-    if (formData.premium?.file) {
-      formDataObj.append("premium_zipFile", formData.premium.file)
-    }
+    appendTextBooleans("basic")
+    appendTextBooleans("plus")
+    appendTextBooleans("premium")
+
+    if (formData.basic?.file) formDataObj.append("basic_zipFile", formData.basic.file)
+    if (formData.plus?.file) formDataObj.append("plus_zipFile", formData.plus.file)
+    if (formData.premium?.file) formDataObj.append("premium_zipFile", formData.premium.file)
 
     try {
-      // await onSave(formDataObj)
       await putData(`/admin/modules/${initialData.id}`, formDataObj)
       setSaving(false)
-     setRefresh(Math.random())
+      setRefresh(Math.random())
       onClose()
     } catch (error) {
       console.error("Error saving module:", error)
@@ -183,103 +168,153 @@ export default function EditModal({ isOpen, onClose,setRefresh, initialData }: E
         ...prev,
         form: "Failed to save module. Please try again.",
       }))
+      setSaving(false)
     }
   }
 
-  if (!isOpen) return null
-
   const textOptions = ["Text Production", "Conclusion", "Map"]
 
-  const renderTierSection = (tier: "basic" | "plus" | "premium", title: string) => (
-    <div className="flex-1 px-4">
-      <h3 className="text-lg font-medium mb-4 text-center">{title}</h3>
+  const renderTierSection = (tier: "basic" | "plus" | "premium", title: string) => {
+    const tierData = initialData.tiers?.find((t) => t.tier === tier)
 
-      {/* Upload Section */}
-      <div className="mb-4">
-        <div
-          className={`border-2 border-dashed rounded-lg p-4 ${dragActive ? "border-blue-500 bg-blue-50" : "border-gray-200 bg-gray-50"}`}
-          onDragEnter={handleDrag}
-          onDragOver={handleDrag}
-          onDragLeave={handleDrag}
-          onDrop={(e) => handleDrop(tier, e)}
-        >
-          {formData[tier]?.file ? (
-            <div className="flex items-center justify-between p-2">
-              <div className="flex items-center gap-2">
-                <File className="w-4 h-4 text-gray-500" />
-                <div>
-                  <p className="text-sm">{formData[tier]?.file?.name}</p>
-                  <p className="text-xs text-gray-500">
-                    {formData[tier]?.file?.type || "application/zip"} • {(formData[tier]?.file?.size / 1024).toFixed(1)} KB
-                  </p>
+    return (
+      <div className="flex-1 px-4">
+        <h3 className="text-lg font-medium mb-4 text-center">{title}</h3>
+
+        {/* Upload Section */}
+        <div className="mb-4">
+          <div
+            className={`border-2 border-dashed rounded-lg p-4 ${
+              dragActive ? "border-blue-500 bg-blue-50" : "border-gray-200 bg-gray-50"
+            }`}
+            onDragEnter={handleDrag}
+            onDragOver={handleDrag}
+            onDragLeave={handleDrag}
+            onDrop={(e) => handleDrop(tier, e)}
+          >
+            {formData[tier]?.file ? (
+              <div className="flex items-center justify-between p-2">
+                <div className="flex items-center gap-2">
+                  <File className="w-4 h-4 text-gray-500" />
+                  <div>
+                    <p className="text-sm">{formData[tier]?.file?.name}</p>
+                    <p className="text-xs text-gray-500">
+                      {formData[tier]?.file?.type || "application/zip"} •{" "}
+                      {((formData[tier]?.file?.size || 0) / 1024).toFixed(1)} KB
+                    </p>
+                  </div>
                 </div>
+                <button
+                  onClick={() =>
+                    setFormData((prev) => ({
+                      ...prev,
+                      [tier]: { ...prev[tier], file: null },
+                    }))
+                  }
+                  className="text-gray-400 hover:text-gray-600"
+                >
+                  <X className="w-4 h-4" />
+                </button>
               </div>
+            ) : (
+              <div className="text-center py-2">
+                <Upload className="w-6 h-6 mx-auto text-gray-400 mb-2" />
+                <p className="text-sm text-gray-600 mb-3">Upload Module as html</p>
+                <label className="inline-block px-4 py-2 bg-gray-800 text-white rounded text-sm cursor-pointer">
+                  Upload File
+                  <input
+                    type="file"
+                    onChange={(e) => handleFileChange(tier, e)}
+                    className="hidden"
+                  />
+                </label>
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* RevenueCat Fields */}
+        <div className="mb-4">
+          <label className="block text-sm font-medium text-gray-700 mb-1">
+            Entitlement ID
+          </label>
+          <input
+            type="text"
+            placeholder="RevenueCat Entitlement ID"
+            value={formData[tier]?.entitlement || ""}
+            onChange={(e) =>
+              setFormData((prev) => ({
+                ...prev,
+                [tier]: {
+                  ...prev[tier],
+                  entitlement: e.target.value,
+                },
+              }))
+            }
+            onClick={() => {
+              if (formData[tier]?.entitlement) {
+                navigator.clipboard
+                  .writeText(formData[tier].entitlement)
+                  .then(() => {
+                    alert("Entitlement ID copied to clipboard")
+                  })
+                  .catch((err) => {
+                    console.error("Failed to copy text: ", err)
+                  })
+              }
+            }}
+            className="w-full px-3 py-2 border bg-gray-100 border-gray-300 rounded text-sm cursor-pointer hover:bg-gray-200 transition-colors"
+          />
+
+          <label className="block text-sm font-medium text-gray-700 mb-1 mt-3">
+            Product ID
+          </label>
+          <input
+            type="text"
+            placeholder="RevenueCat Product ID"
+            value={tierData?.productId || ""}
+            readOnly
+            onClick={() => {
+              if (tierData?.productId) {
+                navigator.clipboard
+                  .writeText(tierData.productId)
+                  .then(() => {
+                    alert("Product ID copied to clipboard")
+                  })
+                  .catch((err) => {
+                    console.error("Failed to copy text: ", err)
+                  })
+              }
+            }}
+            className="w-full px-3 py-2 border bg-gray-100 border-gray-300 rounded text-sm cursor-pointer hover:bg-gray-200 transition-colors"
+          />
+        </div>
+
+        {/* Text Selection Buttons */}
+        <div className="space-y-2">
+          {textOptions.map((text) => {
+            const isSelected = formData[tier]?.selectedTexts?.includes(text) || false
+            return (
               <button
-                onClick={() => setFormData(prev => ({
-                  ...prev,
-                  [tier]: { ...prev[tier], file: null }
-                }))}
-                className="text-gray-400 hover:text-gray-600"
+                key={text}
+                type="button"
+                onClick={() => handleTextSelection(tier, text)}
+                className={`w-full px-3 py-2 rounded text-sm border ${
+                  isSelected
+                    ? "bg-blue-50 border-blue-300 text-blue-700"
+                    : "bg-gray-50 border-gray-200 text-gray-600"
+                }`}
               >
-                <X className="w-4 h-4" />
+                {text}
               </button>
-            </div>
-          ) : (
-            <div className="text-center py-2">
-              <Upload className="w-6 h-6 mx-auto text-gray-400 mb-2" />
-              <p className="text-sm text-gray-600 mb-3">Upload Module as html</p>
-              <label className="inline-block px-4 py-2 bg-gray-800 text-white rounded text-sm cursor-pointer">
-                Upload File
-                <input
-                  type="file"
-                  onChange={(e) => handleFileChange(tier, e)}
-                  className="hidden"
-                />
-              </label>
-            </div>
-          )}
+            )
+          })}
         </div>
       </div>
+    )
+  }
 
-      {/* RevenueCat Entitlement */}
-      <div className="mb-4">
-        <input
-          type="text"
-          disabled
-          placeholder="RevenueCat Entitlement"
-          value={formData[tier]?.entitlement || ''}
-          onChange={(e) => setFormData(prev => ({
-            ...prev,
-            [tier]: {
-              ...prev[tier],
-              entitlement: e.target.value
-            }
-          }))}
-          className="w-full px-3 py-2 border bg-gray-100 border-gray-300 rounded text-sm"
-        />
-      </div>
-
-      {/* Text Selection Buttons */}
-      <div className="space-y-2">
-        {textOptions.map((text) => {
-          const isSelected = formData[tier]?.selectedTexts?.includes(text) || false
-          return (
-            <button
-              key={text}
-              type="button"
-              onClick={() => handleTextSelection(tier, text)}
-              className={`w-full px-3 py-2 rounded text-sm border ${isSelected ? "bg-blue-50 border-blue-300 text-blue-700" : "bg-gray-50 border-gray-200 text-gray-600"
-                }`}
-            >
-              {text} 
-            </button>
-          )
-        })}
-      </div>
-    </div>
-  )
-
-
+  if (!isOpen) return null
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4 backdrop-blur-sm">
@@ -295,24 +330,6 @@ export default function EditModal({ isOpen, onClose,setRefresh, initialData }: E
             </button>
           </div>
 
-          {/* Header Fields */}
-          <div className="mb-6">
-            <input
-              type="text"
-              placeholder="Module Name"
-              value={formData.name || ''}
-              onChange={(e) => setFormData(prev => ({ ...prev, name: e.target.value }))}
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg mb-3"
-            />
-            <textarea
-              placeholder="Module Description"
-              value={formData.description || ''}
-              onChange={(e) => setFormData(prev => ({ ...prev, description: e.target.value }))}
-              rows={3}
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg"
-            />
-          </div>
-
           {/* Three Tier Sections */}
           <div className="flex border border-gray-200 rounded-lg overflow-hidden mb-6">
             {renderTierSection("basic", "Basic")}
@@ -323,7 +340,9 @@ export default function EditModal({ isOpen, onClose,setRefresh, initialData }: E
           </div>
 
           {/* Error Message */}
-          {errors.form && <p className="text-red-500 text-sm mb-4 text-center">{errors.form}</p>}
+          {errors.form && (
+            <p className="text-red-500 text-sm mb-4 text-center">{errors.form}</p>
+          )}
 
           {/* Save Button */}
           <div className="flex justify-center">

@@ -125,9 +125,9 @@ export function DataTable<T extends { id: number | string }>({
   const [currentModule, setCurrentModule] = useState<any>({
     name: '',
     description: '',
-    basic: { entitlement: '', text: '' },
+    basic: { entitlement: '', text: '',productId:'' },
     plus: { entitlement: '', text: '' },
-    premium: { entitlement: '', text: '' }
+    premium: { entitlement: '', text: '' ,productId:''}
   });
 
   const handleTireUpdate = (module:any) => {
