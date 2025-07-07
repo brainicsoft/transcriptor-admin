@@ -72,6 +72,7 @@ export async function PATCH(
       updateData.password = password
     }
 
+    delete updateData.userPackages
     const updatedUser = await prisma.user.update({
       where: { id },
       data: updateData,

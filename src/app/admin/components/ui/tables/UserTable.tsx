@@ -21,6 +21,7 @@ type SortField = "fullName" | "email" | "profession" | "country" | "city" | "cre
 type SortDirection = "asc" | "desc"
 
 export default function UsersTable() {
+  const [refresh, setRefresh] = useState(0)
   const [selectedRows, setSelectedRows] = useState<string[]>([])
   const [searchTerm, setSearchTerm] = useState("")
   const [sortField, setSortField] = useState<SortField>("fullName")
@@ -33,13 +34,13 @@ export default function UsersTable() {
   const [isLoading, setIsLoading] = useState(true)
   const router = useRouter()
   const [selectedUser, setSelectedUser] = useState<User | null>(null);
-const [isDetailsModalOpen, setIsDetailsModalOpen] = useState(false);
+  const [isDetailsModalOpen, setIsDetailsModalOpen] = useState(false);
 
-// Add this handler
-const handleRowClick = (user: User) => {
-  setSelectedUser(user);
-  setIsDetailsModalOpen(true);
-};
+  // Add this handler
+  const handleRowClick = (user: User) => {
+    setSelectedUser(user);
+    setIsDetailsModalOpen(true);
+  };
   const itemsPerPage = 10
   const [modalConfig, setModalConfig] = useState({
     isOpen: false,
@@ -96,14 +97,15 @@ const handleRowClick = (user: User) => {
     buttonText: string;
     initialData?: any;
   }) => {
-    setModalConfig({ 
-      ...config, 
-      isOpen: true, 
-      initialData: config.initialData !== undefined ? config.initialData : {} 
+    setModalConfig({
+      ...config,
+      isOpen: true,
+      initialData: config.initialData !== undefined ? config.initialData : {}
     });
   };
 
   const closeModal = () => {
+    setRefresh(Math.random())
     setModalConfig(prev => ({ ...prev, isOpen: false }));
   };
 
@@ -127,7 +129,7 @@ const handleRowClick = (user: User) => {
         setTotalUsers(response.meta.total)
       } catch (error) {
         console.error("Error fetching users:", error)
-       alert("Failed to fetch users")
+        alert("Failed to fetch users")
       } finally {
         setIsLoading(false)
       }
@@ -138,7 +140,7 @@ const handleRowClick = (user: User) => {
     }, 300)
 
     return () => clearTimeout(debounceTimer)
-  }, [searchTerm, sortField, sortDirection, currentPage, professionFilter, countryFilter])
+  }, [searchTerm, sortField, sortDirection, currentPage, professionFilter, countryFilter, refresh])
 
   const totalPages = Math.ceil(totalUsers / itemsPerPage)
 
@@ -182,7 +184,7 @@ const handleRowClick = (user: User) => {
   const handleEditUser = (user: User) => {
     // Remove password field for edit
     const editFields = userFields.filter(field => field.name !== 'password');
-    
+
     openModal({
       title: 'Edit User',
       fields: editFields,
@@ -196,7 +198,7 @@ const handleRowClick = (user: User) => {
   const handleDeleteUser = async (userId: string) => {
     try {
       await deleteData(`/user/${userId}`);
-     alert("User deleted successfully");
+      alert("User deleted successfully");
       setUsers(prevUsers => prevUsers.filter(user => user.id !== userId));
       setTotalUsers(prev => prev - 1);
     } catch (error) {
@@ -207,10 +209,10 @@ const handleRowClick = (user: User) => {
 
   const handleBulkDelete = async () => {
     if (selectedRows.length === 0) return;
-    
+
     try {
       await Promise.all(selectedRows.map(id => deleteData(`/user/${id}`)));
-     alert(`${selectedRows.length} user(s) deleted successfully`);
+      alert(`${selectedRows.length} user(s) deleted successfully`);
       setUsers(prevUsers => prevUsers.filter(user => !selectedRows.includes(user.id)));
       setTotalUsers(prev => prev - selectedRows.length);
       setSelectedRows([]);
@@ -283,9 +285,9 @@ const handleRowClick = (user: User) => {
             </Button>
 
             {selectedRows.length > 0 && (
-              <Button 
+              <Button
                 onClick={handleBulkDelete}
-                variant="destructive" 
+                variant="destructive"
                 size="sm"
                 className="ml-2"
               >
@@ -394,7 +396,7 @@ const handleRowClick = (user: User) => {
                           className="rounded-full w-10 h-10"
                         />
                         <div>
-                          <div className="font-medium cursor-pointer text-blue-600"   onClick={() => handleRowClick(user)} >{user.fullName}</div>
+                          <div className="font-medium cursor-pointer text-blue-600" onClick={() => handleRowClick(user)} >{user.fullName}</div>
                           {user.isAdmin && (
                             <span className="text-xs bg-blue-100 text-blue-800 px-2 py-0.5 rounded-full">
                               Admin
@@ -409,15 +411,15 @@ const handleRowClick = (user: User) => {
                     <TableCell className="text-gray-600">{formatDate(user.lastLoginAt)}</TableCell>
                     <TableCell>
                       <div className="flex items-center gap-2">
-                        <Button 
-                          variant="ghost" 
+                        <Button
+                          variant="ghost"
                           size="sm"
                           onClick={() => handleDeleteUser(user.id)}
                         >
                           <Trash2 className="w-4 h-4 text-gray-400 hover:text-red-500" />
                         </Button>
-                        <Button 
-                          variant="ghost" 
+                        <Button
+                          variant="ghost"
                           size="sm"
                           onClick={() => handleEditUser(user)}
                         >
@@ -453,33 +455,25 @@ const handleRowClick = (user: User) => {
         onSuccess={handleModalSuccess}
       />
       <UserDetailsModal
-  isOpen={isDetailsModalOpen}
-  onClose={() => setIsDetailsModalOpen(false)}
-  user={{
-    fullName: selectedUser?.fullName || "",
-    email: selectedUser?.email || "",
-    createdAt: selectedUser?.createdAt 
-      ? new Date(selectedUser.createdAt).toLocaleDateString('en-US', {
-          day: 'numeric',
-          month: 'short',
-          year: 'numeric'
-        }) 
-      : "",
-    address: formatAddress(selectedUser || {} as User),
-    packages: [
-      {
-        name: "Transcriptor Basic",
-        description: "A module for transcription",
-        status: "active",
-      },
-      {
-        name: "Transcriptor Plus",
-        description: "A module for transcription",
-        status: "active",
-      },
-    ],
-  }}
-/>
+        isOpen={isDetailsModalOpen}
+        onClose={() => {
+          setRefresh(Math.random())
+          setIsDetailsModalOpen(false)}}
+        user={{
+          fullName: selectedUser?.fullName || "",
+          email: selectedUser?.email || "",
+          createdAt: selectedUser?.createdAt
+            ? new Date(selectedUser.createdAt).toLocaleDateString('en-US', {
+              day: 'numeric',
+              month: 'short',
+              year: 'numeric'
+            })
+            : "",
+          address: formatAddress(selectedUser || {} as User),
+          packages: selectedUser?.userPackages,
+          
+        }}
+      />
     </div>
   )
 }

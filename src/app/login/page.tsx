@@ -1,7 +1,6 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 "use client"
 import { useState } from 'react'
-import Link from 'next/link'
 import { FiLock, FiMail, FiEye, FiEyeOff, FiUser } from 'react-icons/fi'
 
 export default function LoginPage() {
@@ -9,7 +8,7 @@ export default function LoginPage() {
   const [password, setPassword] = useState('')
     const [error, setError] = useState<string | null>(null);
   const [showPassword, setShowPassword] = useState(false)
-  const [rememberMe, setRememberMe] = useState(false)
+  // const [rememberMe, setRememberMe] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
 
   const handleSubmit =  async(e: React.FormEvent) => {
@@ -38,7 +37,8 @@ export default function LoginPage() {
         
  window.location.href = `${window.location.origin}/admin`;
       } else {
-        setError(data?.error || 'Login failed');
+        console.log(data)
+        setError(data?.message || 'Login failed');
       }
     } catch (err:any) {
       setError(err.message || 'Something went wrong. Please try again.');
@@ -120,8 +120,7 @@ export default function LoginPage() {
             </div>
           </div>
 
-          <div className="flex items-center justify-between">
-            {/* Remember Me Checkbox */}
+          {/* <div className="flex items-center justify-between">
             <div className="flex items-center">
               <input
                 id="remember-me"
@@ -136,7 +135,6 @@ export default function LoginPage() {
               </label>
             </div>
 
-            {/* Forgot Password Link */}
             <div className="text-sm">
               <Link
                 href="/forgot-password"
@@ -145,7 +143,7 @@ export default function LoginPage() {
                 Forgot password?
               </Link>
             </div>
-          </div>
+          </div> */}
  {error && <div className="text-red-500">{error}</div>}
           {/* Submit Button */}
           <div>

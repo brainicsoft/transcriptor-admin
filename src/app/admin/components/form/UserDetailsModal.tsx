@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 // components/UserDetailsModal.tsx
 import { useEffect } from "react";
 import Image from "next/image";
@@ -11,11 +12,7 @@ interface UserDetailsModalProps {
     email: string;
     createdAt: string;
     address: string;
-    packages: Array<{
-      name: string;
-      description: string;
-      status: "active" | "hold";
-    }>;
+    packages:any;
   };
 }
 
@@ -81,18 +78,18 @@ export function UserDetailsModal({ isOpen, onClose, user }: UserDetailsModalProp
             <p className="text-gray-500">Address: {user.address}</p>
           </div>
 
-          <div className="flex gap-2">
+          {/* <div className="flex gap-2">
             <button className="px-4 py-2 bg-yellow-100 text-yellow-800 rounded-md hover:bg-yellow-200 transition">
               Deactivate
             </button>
             <button className="px-4 py-2 bg-red-100 text-red-800 rounded-md hover:bg-red-200 transition">
               Delete
             </button>
-          </div>
+          </div> */}
 
           <div className="mt-4">
             <h3 className="font-semibold mb-2">Subscribed Packages:</h3>
-            {user.packages.map((pkg, index) => (
+            { user.packages ?  user.packages.map((pkg, index) => (
               <div
                 key={index}
                 className="mb-4 p-3 border rounded-lg hover:bg-gray-50 transition"
@@ -102,7 +99,7 @@ export function UserDetailsModal({ isOpen, onClose, user }: UserDetailsModalProp
                     <h4 className="font-medium">{pkg.name}</h4>
                     <p className="text-sm text-gray-600">{pkg.description}</p>
                   </div>
-                  {pkg.status === "active" ? (
+                  {!pkg.isActive  ? (
                     <button className="px-3 py-1 text-sm text-yellow-800 bg-yellow-50 rounded hover:bg-yellow-100 transition">
                       Hold
                     </button>
@@ -113,7 +110,9 @@ export function UserDetailsModal({ isOpen, onClose, user }: UserDetailsModalProp
                   )}
                 </div>
               </div>
-            ))}
+            )):(
+              <p className="text-center my-5"> no package active</p>
+            )}
           </div>
         </div>
 

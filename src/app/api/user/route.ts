@@ -85,6 +85,8 @@ export async function GET(req: NextRequest) {
         createdAt: true,
         updatedAt: true,
         lastLoginAt: true,
+        userPackages:true
+        
         // Exclude password and relations unless needed
       },
       skip: (page - 1) * perPage,

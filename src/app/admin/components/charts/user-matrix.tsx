@@ -104,21 +104,21 @@ export default function UserMatrixChart({
           <div className="w-3 h-3 rounded-full bg-[#4F46E5]" />
           <div className="flex flex-col">
             <span className="text-sm text-gray-500">New Users</span>
-            <span className="text-xl font-semibold text-gray-900">{newUsers}K</span>
+            <span className="text-xl font-semibold text-gray-900">{newUsers}</span>
           </div>
         </div>
         <div className="flex items-center gap-3">
           <div className="w-3 h-3 rounded-full bg-[#06B6D4]" />
           <div className="flex flex-col">
             <span className="text-sm text-gray-500">New Subscriptions</span>
-            <span className="text-xl font-semibold text-gray-900">{newSubscriptions}K</span>
+            <span className="text-xl font-semibold text-gray-900">{newSubscriptions}</span>
           </div>
         </div>
         <div className="flex items-center gap-3">
           <div className="w-3 h-3 rounded-full bg-[#10B981]" />
           <div className="flex flex-col">
             <span className="text-sm text-gray-500">Re-New Subscriptions</span>
-            <span className="text-xl font-semibold text-gray-900">{renewSubscriptions}K</span>
+            <span className="text-xl font-semibold text-gray-900">{renewSubscriptions}</span>
           </div>
         </div>
       </div>
