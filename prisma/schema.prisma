@@ -51,9 +51,9 @@ model Module {
 model ModuleTier {
   id                String  @id @default(cuid())
   moduleId          String
-  tier              String // basic, plus, premium
-  productId         String  @unique // RevenueCat product identifier
-  entitlementId     String  @unique // RevenueCat entitlement identifier
+  tier              String 
+  productId         String  @unique
+  entitlementId     String  @unique
   webviewUrl        String?
   zipFileUrl        String?
   hasTextProduction Boolean @default(false)

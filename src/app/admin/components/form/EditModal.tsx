@@ -9,6 +9,9 @@ interface ModuleTier {
   file?: File | null
   entitlement: string
   selectedTexts: string[]
+  textLimit?: number
+  conclusionLimit?: number
+  mapLimit?: number
 }
 
 interface ModuleTierData {
@@ -42,9 +45,9 @@ export default function EditModal({ isOpen, onClose, setRefresh, initialData }: 
   const [formData, setFormData] = useState<ModuleData>({
     name: '',
     description: '',
-    basic: { entitlement: '', selectedTexts: [] },
-    plus: { entitlement: '', selectedTexts: [] },
-    premium: { entitlement: '', selectedTexts: [] },
+    basic: { entitlement: '', selectedTexts: [], textLimit: 0, conclusionLimit: 0, mapLimit: 0 },
+    plus: { entitlement: '', selectedTexts: [], textLimit: 0, conclusionLimit: 0, mapLimit: 0 },
+    premium: { entitlement: '', selectedTexts: [], textLimit: 0, conclusionLimit: 0, mapLimit: 0 },
     ...initialData
   })
 
@@ -55,17 +58,19 @@ export default function EditModal({ isOpen, onClose, setRefresh, initialData }: 
     if (!isOpen || !initialData) return
 
     const getTierData = (tierName: "basic" | "plus" | "premium") => {
-      const tier = initialData.tiers?.find((t) => t.tier === tierName)
+      const tier:any = initialData.tiers?.find((t) => t.tier === tierName)
       const selectedTexts: string[] = []
 
       if (tier?.hasTextProduction) selectedTexts.push("Text Production")
       if (tier?.hasConclusion) selectedTexts.push("Conclusion")
       if (tier?.hasMap) selectedTexts.push("Map")
-
       return {
         file: null,
         entitlement: tier?.entitlementId || '',
-        selectedTexts
+        selectedTexts,
+        textLimit: tier?.textProductionLimit || 0,
+        conclusionLimit: tier?.conclusionLimit || 0,
+        mapLimit: tier?.mapLimit || 0
       }
     }
 
@@ -123,8 +128,8 @@ export default function EditModal({ isOpen, onClose, setRefresh, initialData }: 
       const currentTexts = prev[tier]?.selectedTexts || []
       const isSelected = currentTexts.includes(text)
 
-      const newSelectedTexts = isSelected 
-        ? currentTexts.filter((t) => t !== text) 
+      const newSelectedTexts = isSelected
+        ? currentTexts.filter((t) => t !== text)
         : [...currentTexts, text]
 
       return {
@@ -137,6 +142,17 @@ export default function EditModal({ isOpen, onClose, setRefresh, initialData }: 
     })
   }
 
+  const handleLimitChange = (tier: "basic" | "plus" | "premium", field: 'textLimit' | 'conclusionLimit' | 'mapLimit', value: string) => {
+    const numValue = parseInt(value) || 0
+    setFormData(prev => ({
+      ...prev,
+      [tier]: {
+        ...prev[tier],
+        [field]: numValue
+      }
+    }))
+  }
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setSaving(true)
@@ -147,6 +163,11 @@ export default function EditModal({ isOpen, onClose, setRefresh, initialData }: 
       formDataObj.append(`${tier}_hasTextProduction`, texts.includes("Text Production").toString())
       formDataObj.append(`${tier}_hasConclusion`, texts.includes("Conclusion").toString())
       formDataObj.append(`${tier}_hasMap`, texts.includes("Map").toString())
+
+      // Add limit fields
+      formDataObj.append(`${tier}_textLimit`, formData[tier].textLimit?.toString() || '0')
+      formDataObj.append(`${tier}_conclusionLimit`, formData[tier].conclusionLimit?.toString() || '0')
+      formDataObj.append(`${tier}_mapLimit`, formData[tier].mapLimit?.toString() || '0')
     }
 
     appendTextBooleans("basic")
@@ -184,9 +205,8 @@ export default function EditModal({ isOpen, onClose, setRefresh, initialData }: 
         {/* Upload Section */}
         <div className="mb-4">
           <div
-            className={`border-2 border-dashed rounded-lg p-4 ${
-              dragActive ? "border-blue-500 bg-blue-50" : "border-gray-200 bg-gray-50"
-            }`}
+            className={`border-2 border-dashed rounded-lg p-4 ${dragActive ? "border-blue-500 bg-blue-50" : "border-gray-200 bg-gray-50"
+              }`}
             onDragEnter={handleDrag}
             onDragOver={handleDrag}
             onDragLeave={handleDrag}
@@ -295,18 +315,40 @@ export default function EditModal({ isOpen, onClose, setRefresh, initialData }: 
           {textOptions.map((text) => {
             const isSelected = formData[tier]?.selectedTexts?.includes(text) || false
             return (
-              <button
-                key={text}
-                type="button"
-                onClick={() => handleTextSelection(tier, text)}
-                className={`w-full px-3 py-2 rounded text-sm border ${
-                  isSelected
+              <div key={text} className="space-y-1">
+                <button
+                  type="button"
+                  onClick={() => handleTextSelection(tier, text)}
+                  className={`w-full px-3 py-2 rounded text-sm border ${isSelected
                     ? "bg-blue-50 border-blue-300 text-blue-700"
                     : "bg-gray-50 border-gray-200 text-gray-600"
-                }`}
-              >
-                {text}
-              </button>
+                    }`}
+                >
+                  {text}
+                </button>
+                {isSelected && (
+                  <div className="flex items-center">
+                    <label className=" text-gray-500 mr-2 text-md bold">Limit:</label>
+                    <input
+                      type="number"
+                      value={
+                        text === "Text Production" ? formData[tier]?.textLimit || 0 :
+                          text === "Conclusion" ? formData[tier]?.conclusionLimit || 0 :
+                            formData[tier]?.mapLimit || 0
+                      }
+                      onChange={(e) =>
+                        handleLimitChange(
+                          tier,
+                          text === "Text Production" ? 'textLimit' :
+                            text === "Conclusion" ? 'conclusionLimit' : 'mapLimit',
+                          e.target.value
+                        )
+                      }
+                      className="w-full px-2 py-1 text-xs border border-gray-300 rounded"
+                    />
+                  </div>
+                )}
+              </div>
             )
           })}
         </div>
