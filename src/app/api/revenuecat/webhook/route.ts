@@ -1,146 +1,116 @@
-import prisma from "@/lib/prisma";
-import { NextApiRequest, NextApiResponse } from "next";
 import { NextRequest, NextResponse } from "next/server";
+import { prisma } from "@/lib/prisma"; // adjust import path as needed
 
-
-export async function POST(
-  req: NextRequest,
-) {
+export async function POST(req: NextRequest) {
   try {
-    const event = await req.json();
-    const revEvent = event.event;
+    const body = await req.json();
+    const revEvent = body?.event;
 
-    console.log({
-      "RevenueCat Event": event,
-    });
-
-    // Make sure it's a subscription event
-    if (!event || !revEvent || !revEvent.subscriber_attributes) {
-      console.log({
-        "RevenueCat Event": revEvent,
-        "RevenueCat Subscriber Attributes": revEvent.subscriber_attributes,
-      });
-      return NextResponse.json(
-        { success: false, message: "Invalid event" },
-        { status: 400 }
-      );
+    if (!revEvent) {
+      return NextResponse.json({ success: false, message: "Missing event data" }, { status: 400 });
     }
 
-    const eventType = revEvent.type;
-    
-    const attributes = revEvent.subscriber_attributes || {};
-    const actualUserId = attributes.user_id?.value;
+    const {
+      type: eventType,
+      entitlement_id,
+      expiration_at_ms,
+      purchased_at_ms,
+      app_user_id,
+    } = revEvent;
 
-    const expirationDate = revEvent.expiration_at_ms
-      ? new Date(revEvent.expiration_at_ms)
-      : null;
+    if (!app_user_id) {
+      return NextResponse.json({ success: false, message: "Missing app_user_id" }, { status: 400 });
+    }
 
-    const purchaseDate = revEvent.purchased_at_ms
-      ? new Date(revEvent.purchased_at_ms)
-      : null;
+    if (!entitlement_id) {
+      return NextResponse.json({ success: false, message: "Missing entitlement_id" }, { status: 400 });
+    }
 
-    if (!actualUserId)
-      return NextResponse.json({ success: false, message: "Invalid user ID" }, { status: 400 });
+    const user = await prisma.user.findUnique({ where: { id: app_user_id } });
 
-    // Find the user by actual backend user ID
-    const user = await prisma.user.findUnique({
-      where: { id: actualUserId },
+    if (!user) {
+      return NextResponse.json({ success: false, message: "User not found" }, { status: 404 });
+    }
+
+    const moduleTier = await prisma.moduleTier.findUnique({
+      where: { entitlementId: entitlement_id },
     });
 
-    if (!user) return NextResponse.json({ success: false, message: "User not found" }, { status: 404 });
+    if (!moduleTier) {
+      return NextResponse.json({ success: false, message: "Invalid entitlement_id" }, { status: 400 });
+    }
 
-    // Loop through active entitlements
-    for (const entitlement of revEvent.entitlement_ids) {
-      if (!entitlement) continue;
+    const moduleTierId = moduleTier.id;
+    const purchaseDate = purchased_at_ms ? new Date(purchased_at_ms) : new Date();
+    const expirationDate = expiration_at_ms ? new Date(expiration_at_ms) : null;
 
-      const [moduleId, moduleTierId, tier] = entitlement.split("-");
-
-      if (!moduleId || !moduleTierId || !tier) {
-        console.warn(`Invalid entitlement format: ${entitlement}`);
-        continue;
-      }
-
-      if (eventType === "INITIAL_PURCHASE") {
-        
-
-        await prisma.userModule.create({
-          data: {
+    // Upsert/Delete userModule & handle moduleUsage
+    if (["INITIAL_PURCHASE", "UNCANCELLATION", "RENEWAL"].includes(eventType)) {
+      // Upsert UserModule
+      await prisma.userModule.upsert({
+        where: {
+          userId_moduleTierId: {
             userId: user.id,
-            moduleTierId: moduleTierId,
-            assignedAt: purchaseDate || new Date(),
-            expiresAt: expirationDate,
+            moduleTierId,
           },
-        });
-      }
+        },
+        update: {
+          assignedAt: purchaseDate,
+          expiresAt: expirationDate,
+        },
+        create: {
+          userId: user.id,
+          moduleTierId,
+          assignedAt: purchaseDate,
+          expiresAt: expirationDate,
+        },
+      });
 
-      if (eventType === "RENEWAL") {
-        await prisma.userModule.update({
-          where: {
-            userId_moduleTierId: {
-              userId: user.id,
-              moduleTierId: moduleTierId,
-            },
-          },
-          data: {
-            assignedAt: purchaseDate || new Date(),
-            expiresAt: expirationDate,
-          },
-        })
-      }
-
-      if (eventType === "CANCELLATION") {
-
-        await prisma.userModule.delete({
-          where: {
-            userId_moduleTierId: {
-              userId: user.id,
-              moduleTierId: moduleTierId,
-            },
-          },
-        })
-
-      }
-
-
-      if (eventType === "UNCANCELLATION") {
-
-        const existing = await prisma.userModule.findUnique({
-          where: {
-            userId_moduleTierId: {
-              userId: user.id,
-              moduleTierId: moduleTierId,
-            },
-          },
-        });
-
-        if (!existing) {
-          await prisma.userModule.create({
-            data: {
-              userId: user.id,
-              moduleTierId: moduleTierId,
-              assignedAt: purchaseDate || new Date(),
-              expiresAt: expirationDate,
-            },
-          });
-        }
-        
-      }
-
-      if (eventType === "EXPIRATION") {
-        await prisma.userModule.deleteMany({
-          where: {
+      // Upsert ModuleUsage with zeroed counts
+      await prisma.moduleUsage.upsert({
+        where: {
+          userId_moduleTierId: {
             userId: user.id,
-            moduleTierId: moduleTierId,
+            moduleTierId,
           },
-        });
-      }
-      
-      
+        },
+        update: {
+          textProductionCount: moduleTier.textProductionLimit,
+          conclusionCount: moduleTier.conclusionLimit,
+          mapCount: moduleTier.mapLimit,
+          lastUpdated: new Date(),
+        },
+        create: {
+          userId: user.id,
+          moduleTierId,
+         textProductionCount: moduleTier.textProductionLimit,
+          conclusionCount: moduleTier.conclusionLimit,
+          mapCount: moduleTier.mapLimit,
+        },
+      });
+    }
+
+    if (["CANCELLATION", "EXPIRATION"].includes(eventType)) {
+      // Delete UserModule and ModuleUsage
+      await prisma.userModule.deleteMany({
+        where: {
+          userId: user.id,
+          moduleTierId,
+        },
+      });
+
+      await prisma.moduleUsage.deleteMany({
+        where: {
+          userId: user.id,
+          moduleTierId,
+        },
+      });
     }
 
     return NextResponse.json({ success: true, message: "Webhook processed" }, { status: 200 });
+
   } catch (error) {
     console.error("RevenueCat Webhook Error:", error);
-    return NextResponse.json({ success: false, message: "Error processing webhook" }, { status: 500 });
+    return NextResponse.json({ success: false, message: "Internal Server Error" }, { status: 500 });
   }
 }

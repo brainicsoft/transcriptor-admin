@@ -45,6 +45,8 @@ export async function GET(req: NextRequest) {
   //   );
   // }
 
+  //  need to uses restiction 
+
   const indexPath = path.join(
     process.cwd(),
     "public",
