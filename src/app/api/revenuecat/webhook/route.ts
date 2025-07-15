@@ -79,17 +79,17 @@ export async function POST(req: NextRequest) {
             },
           },
           update: {
-            textProductionCount: moduleTier.textProductionLimit,
-            conclusionCount: moduleTier.conclusionLimit,
-            mapCount: moduleTier.mapLimit,
+            textProductionCount: 0,
+            conclusionCount: 0,
+            mapCount: 0,
             lastUpdated: new Date(),
           },
           create: {
             userId: user.id,
             moduleTierId,
-            textProductionCount: moduleTier.textProductionLimit,
-            conclusionCount: moduleTier.conclusionLimit,
-            mapCount: moduleTier.mapLimit,
+            textProductionCount: 0,
+            conclusionCount: 0,
+            mapCount: 0,
           },
         });
       }
