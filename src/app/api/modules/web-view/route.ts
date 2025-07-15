@@ -1,15 +1,19 @@
+/* eslint-disable @typescript-eslint/no-unused-vars */
+/* eslint-disable @next/next/no-assign-module-variable */
 import { NextRequest, NextResponse } from "next/server";
 import path from "path";
 import fs from "fs/promises";
 import { getUserFromRequest } from "@/lib/auth";
 import prisma from "@/lib/prisma";
-import { checkUsageInfo } from "@/lib/utils/usage-limit";
 
 export async function GET(req: NextRequest) {
-      const user = getUserFromRequest(req)
-      if (!user) {
-        return NextResponse.json({ success: false, message: "Authentication required" }, { status: 401 })
-      }
+  const user = getUserFromRequest(req);
+  if (!user) {
+    return NextResponse.json(
+      { success: false, message: "Authentication required" },
+      { status: 401 }
+    );
+  }
   const { searchParams } = new URL(req.url);
   const module = searchParams.get("module");
   const tier = searchParams.get("tier");
@@ -28,6 +32,48 @@ export async function GET(req: NextRequest) {
       { status: 400 }
     );
   }
+const moduleUsage = await prisma.moduleUsage.findFirst({
+  where: {
+    userId: user.userId,
+    moduleTierId: module,
+  },
+  include: {
+    moduleTier: true, // populate related tier info
+  },
+});
+
+if (!moduleUsage) {
+  return NextResponse.json({
+    success: false,
+    message: "Module not found",
+  }, { status: 404 });
+}
+
+
+// Destructure for cleaner logic
+const {
+  textProductionCount,
+  conclusionCount,
+  mapCount,
+  moduleTier: {
+    textProductionLimit,
+    conclusionLimit,
+    mapLimit,
+  },
+} = moduleUsage;
+
+// ❌ If any limit is reached (and not -1), block access
+const textLimitReached = textProductionLimit !== -1 && textProductionCount >= textProductionLimit;
+const conclusionLimitReached = conclusionLimit !== -1 && conclusionCount >= conclusionLimit;
+const mapLimitReached = mapLimit !== -1 && mapCount >= mapLimit;
+
+if (textLimitReached || conclusionLimitReached || mapLimitReached) {
+  return NextResponse.json({
+    success: false,
+    message: "You cannot access this.",
+    moduleTier: moduleUsage.moduleTier,
+  });
+}
 
   if (!tier) {
     return NextResponse.json(
@@ -37,15 +83,9 @@ export async function GET(req: NextRequest) {
   }
 
   // check if user has access to the module
-  // const user = getUserFromRequest(req);
-  // if (!user) {
-  //   return NextResponse.json(
-  //     { success: false, message: "Authentication required" },
-  //     { status: 401 }
-  //   );
-  // }
+  // user is already declared above
 
-  //  need to uses restiction 
+  //  need to uses restiction
 
   const indexPath = path.join(
     process.cwd(),
