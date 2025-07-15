@@ -12,9 +12,9 @@ User must be authenticated (e.g., via session or token).
 
 | Name             | Type    | Required | Description                          |
 |------------------|---------|----------|--------------------------------------|
-| `moduleTierId`   | string  | ✅ Yes   | The ID of the module tier            |
-| `incrementType`  | string  | 🚫 No    | One of: `text`, `conclusion`, `map`  |
-| `incrementCount` | boolean | 🚫 No    | If `true`, will decrement the count  |
+| `module`   | string  | ✅ Yes   | The ID of the module tier            |
+| `type`  | string  | 🚫 No    | One of: `text`, `conclusion`, `map`  |
+| `count` | boolean | 🚫 No    | If `true`, will decrement the count  |
 
 ### ✅ Example
 
