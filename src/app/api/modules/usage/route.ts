@@ -6,6 +6,7 @@ export async function GET(req: NextRequest) {
   try {
     // 🔐 Authenticate user
     const authUser = await getUserFromRequest(req);
+    console.log("Authenticated User:", authUser);
     if (!authUser?.userId) {
       return NextResponse.json({ success: false, message: "Unauthorized" }, { status: 401 });
     }

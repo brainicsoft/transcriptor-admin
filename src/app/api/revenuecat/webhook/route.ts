@@ -41,7 +41,7 @@ export async function POST(req: NextRequest) {
       const moduleTier = await prisma.moduleTier.findUnique({
         where: { entitlementId },
       });
-
+console.log(moduleTier)
       if (!moduleTier) {
         console.warn(`No ModuleTier found for entitlementId: ${entitlementId}`);
         continue;

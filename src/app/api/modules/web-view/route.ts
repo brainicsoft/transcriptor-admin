@@ -41,7 +41,7 @@ const moduleUsage = await prisma.moduleUsage.findFirst({
     moduleTier: true, // populate related tier info
   },
 });
-
+console.log('moduleUsage:', moduleUsage);
 if (!moduleUsage) {
   return NextResponse.json({
     success: false,
@@ -67,13 +67,13 @@ const textLimitReached = textProductionLimit !== -1 && textProductionCount >= te
 const conclusionLimitReached = conclusionLimit !== -1 && conclusionCount >= conclusionLimit;
 const mapLimitReached = mapLimit !== -1 && mapCount >= mapLimit;
 
-if (textLimitReached || conclusionLimitReached || mapLimitReached) {
-  return NextResponse.json({
-    success: false,
-    message: "You cannot access this.",
-    moduleTier: moduleUsage.moduleTier,
-  });
-}
+// if (textLimitReached || conclusionLimitReached || mapLimitReached) {
+//   return NextResponse.json({
+//     success: false,
+//     message: "You cannot access this.",
+//     moduleTier: moduleUsage.moduleTier,
+//   });
+// }
 
   if (!tier) {
     return NextResponse.json(
@@ -91,13 +91,15 @@ if (textLimitReached || conclusionLimitReached || mapLimitReached) {
     process.cwd(),
     "public",
     "modules",
-    module,
+    moduleUsage.moduleTier.moduleId,
     tier,
     "index.html"
   );
+  
 
   try {
-    const fileContent = await fs.readFile(indexPath, "utf-8");
+    let fileContent = await fs.readFile(indexPath, "utf-8");
+    fileContent = fileContent.replace("{{TOKEN}}", user?.token || "");
     return new NextResponse(fileContent, {
       headers: {
         "Content-Type": "text/html",
@@ -105,7 +107,7 @@ if (textLimitReached || conclusionLimitReached || mapLimitReached) {
     });
   } catch (error) {
     return NextResponse.json(
-      { error: "Module not found or missing index.html" },
+      { error: "Module not found or missing index.html" + `${indexPath}` },
       { status: 404 }
     );
   }

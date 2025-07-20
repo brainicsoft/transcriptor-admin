@@ -10,8 +10,11 @@ const cookieToken = req.cookies.get("token")?.value
   
 
     const token = authHeader?.split(" ")[1] || cookieToken
-    console.log(token,'token ')
-    return verifyAccessToken(token)
+    const data =  verifyAccessToken(token)
+      return {
+      ...data, 
+      token    
+      }
   } catch (error) {
     console.error("Error extracting user from request:", error)
     return null
