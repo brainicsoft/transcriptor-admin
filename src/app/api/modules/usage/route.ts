@@ -56,7 +56,7 @@ export async function GET(req: NextRequest) {
     };
 
     const feature = featureMap[incrementType as keyof typeof featureMap];
-
+console.log(feature)
     if (increment) {
       if (!feature?.has) {
         return NextResponse.json(
