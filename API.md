@@ -19,7 +19,7 @@ User must be authenticated (e.g., via session or token).
 ### ✅ Example
 
 ```json
-GET /api/modules/usage?module=hello&type=text&count=true
+GET /api/modules/usage?module={moduleTierId}&type=text&count=true
 
 
 ✅ Success Response
