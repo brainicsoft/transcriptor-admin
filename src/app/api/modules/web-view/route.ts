@@ -1,12 +1,11 @@
-/* eslint-disable @typescript-eslint/no-unused-vars */
-/* eslint-disable @next/next/no-assign-module-variable */
 import { NextRequest, NextResponse } from "next/server";
 import path from "path";
 import fs from "fs/promises";
-import { getUserFromRequest } from "@/lib/auth";
-import prisma from "@/lib/prisma";
+import { getUserFromRequest } from "@/lib/auth"; // assumed
+import { prisma } from "@/lib/prisma"; // assumed
 
 export async function GET(req: NextRequest) {
+  // Get user from request
   const user = getUserFromRequest(req);
   if (!user) {
     return NextResponse.json(
@@ -14,50 +13,51 @@ export async function GET(req: NextRequest) {
       { status: 401 }
     );
   }
+
   const { searchParams } = new URL(req.url);
   const module = searchParams.get("module");
   const tier = searchParams.get("tier");
-  // const tierId = searchParams.get("tierId");
 
-  if (!tier) {
+  // Check for required params
+  if (!module || !tier) {
     return NextResponse.json(
-      { error: "Tier param is required" },
+      { success: false, message: "Missing required parameters: module or tier" },
       { status: 400 }
     );
   }
 
-  if (!module) {
-    return NextResponse.json(
-      { error: "Module param is required" },
-      { status: 400 }
-    );
-  }
-  const {id} = await prisma.moduleTier.findFirst({
-    where: {
-      moduleId: module,
-    },
-    select: {
-      id: true,
-    },
+  // Get tier ID
+  const tierData = await prisma.moduleTier.findFirst({
+    where: { moduleId: module },
+    select: { id: true },
   });
+
+  if (!tierData) {
+    return NextResponse.json(
+      { success: false, message: "Module tier not found" },
+      { status: 404 }
+    );
+  }
+
+  // Get module usage for user
   const moduleUsage = await prisma.moduleUsage.findFirst({
     where: {
       userId: user.userId,
-      moduleTierId: id,
+      moduleTierId: tierData.id,
     },
     include: {
-      moduleTier: true, // populate related tier info
+      moduleTier: true,
     },
   });
+
   if (!moduleUsage) {
-    return NextResponse.json({
-      success: false,
-      message: "subscription expired ",
-    }, { status: 404 });
+    return NextResponse.json(
+      { success: false, message: "Subscription expired" },
+      { status: 404 }
+    );
   }
 
-
-  // Destructure for cleaner logic
+  // Usage limits
   const {
     textProductionCount,
     conclusionCount,
@@ -66,55 +66,43 @@ export async function GET(req: NextRequest) {
       textProductionLimit,
       conclusionLimit,
       mapLimit,
+      moduleId,
     },
   } = moduleUsage;
 
-  // ❌ If any limit is reached (and not -1), block access
   const textLimitReached = textProductionLimit !== -1 && textProductionCount >= textProductionLimit;
   const conclusionLimitReached = conclusionLimit !== -1 && conclusionCount >= conclusionLimit;
   const mapLimitReached = mapLimit !== -1 && mapCount >= mapLimit;
 
+  // Optional: Enforce restriction
+  // Uncomment if you want to block when any limit is exceeded
   // if (textLimitReached || conclusionLimitReached || mapLimitReached) {
   //   return NextResponse.json({
   //     success: false,
   //     message: "You cannot access this.",
   //     moduleTier: moduleUsage.moduleTier,
-  //   });
+  //   }, { status: 403 });
   // }
 
-  if (!tier) {
-    return NextResponse.json(
-      { error: "Tier param is required" },
-      { status: 400 }
-    );
-  }
-
-  // check if user has access to the module
-  // user is already declared above
-
-  //  need to uses restiction
-
+  // Construct file path
   const indexPath = path.join(
     process.cwd(),
     "public",
     "modules",
-    moduleUsage.moduleTier.moduleId,
+    moduleId,
     tier,
     "index.html"
   );
-
 
   try {
     let fileContent = await fs.readFile(indexPath, "utf-8");
     fileContent = fileContent.replace("{{TOKEN}}", user?.token || "");
     return new NextResponse(fileContent, {
-      headers: {
-        "Content-Type": "text/html",
-      },
+      headers: { "Content-Type": "text/html" },
     });
   } catch (error) {
     return NextResponse.json(
-      { error: "Module not found or missing index.html" + `${indexPath}` },
+      { success: false, message: `Module not found or missing index.html: ${indexPath}` },
       { status: 404 }
     );
   }
