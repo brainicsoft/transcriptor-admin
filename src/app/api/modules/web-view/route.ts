@@ -32,48 +32,55 @@ export async function GET(req: NextRequest) {
       { status: 400 }
     );
   }
-const moduleUsage = await prisma.moduleUsage.findFirst({
-  where: {
-    userId: user.userId,
-    moduleTierId: module,
-  },
-  include: {
-    moduleTier: true, // populate related tier info
-  },
-});
-console.log('moduleUsage:', moduleUsage);
-if (!moduleUsage) {
-  return NextResponse.json({
-    success: false,
-    message: "Module not found",
-  }, { status: 404 });
-}
+  const {id} = await prisma.moduleTier.findFirst({
+    where: {
+      moduleId: module,
+    },
+    select: {
+      id: true,
+    },
+  });
+  const moduleUsage = await prisma.moduleUsage.findFirst({
+    where: {
+      userId: user.userId,
+      moduleTierId: id,
+    },
+    include: {
+      moduleTier: true, // populate related tier info
+    },
+  });
+  if (!moduleUsage) {
+    return NextResponse.json({
+      success: false,
+      message: "subscription expired ",
+    }, { status: 404 });
+  }
 
 
-// Destructure for cleaner logic
-const {
-  textProductionCount,
-  conclusionCount,
-  mapCount,
-  moduleTier: {
-    textProductionLimit,
-    conclusionLimit,
-    mapLimit,
-  },
-} = moduleUsage;
+  // Destructure for cleaner logic
+  const {
+    textProductionCount,
+    conclusionCount,
+    mapCount,
+    moduleTier: {
+      textProductionLimit,
+      conclusionLimit,
+      mapLimit,
+    },
+  } = moduleUsage;
 
-// ❌ If any limit is reached (and not -1), block access
-const textLimitReached = textProductionLimit !== -1 && textProductionCount >= textProductionLimit;
-const conclusionLimitReached = conclusionLimit !== -1 && conclusionCount >= conclusionLimit;
-const mapLimitReached = mapLimit !== -1 && mapCount >= mapLimit;
+  // ❌ If any limit is reached (and not -1), block access
+  const textLimitReached = textProductionLimit !== -1 && textProductionCount >= textProductionLimit;
+  const conclusionLimitReached = conclusionLimit !== -1 && conclusionCount >= conclusionLimit;
+  const mapLimitReached = mapLimit !== -1 && mapCount >= mapLimit;
 
-// if (textLimitReached || conclusionLimitReached || mapLimitReached) {
-//   return NextResponse.json({
-//     success: false,
-//     message: "You cannot access this.",
-//     moduleTier: moduleUsage.moduleTier,
-//   });
-// }
+  // if (textLimitReached || conclusionLimitReached || mapLimitReached) {
+  //   return NextResponse.json({
+  //     success: false,
+  //     message: "You cannot access this.",
+  //     moduleTier: moduleUsage.moduleTier,
+  //   });
+  // }
 
   if (!tier) {
     return NextResponse.json(
@@ -95,7 +102,7 @@ const mapLimitReached = mapLimit !== -1 && mapCount >= mapLimit;
     tier,
     "index.html"
   );
-  
+
 
   try {
     let fileContent = await fs.readFile(indexPath, "utf-8");
