@@ -7,7 +7,8 @@ import { prisma } from "@/lib/prisma"; // assumed
 export async function GET(req: NextRequest) {
   // Get user from request
   const user = getUserFromRequest(req);
-  if (!user) {
+  console.log(user,';user in web-view route');
+  if (!user.userId) {
     return NextResponse.json(
       { success: false, message: "Authentication required" },
       { status: 401 }
@@ -39,6 +40,7 @@ export async function GET(req: NextRequest) {
     );
   }
 
+  console.log(user.userId)
   // Get module usage for user
   const moduleUsage = await prisma.moduleUsage.findFirst({
     where: {
@@ -52,7 +54,7 @@ export async function GET(req: NextRequest) {
 
   if (!moduleUsage) {
     return NextResponse.json(
-      { success: false, message: "Subscription expired" },
+      { success: false, message: "Subscription expired", module: moduleUsage },
       { status: 404 }
     );
   }
